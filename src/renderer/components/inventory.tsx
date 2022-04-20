@@ -138,7 +138,7 @@ class Inventory extends React.Component<any,IInventoryState> {
             <Box sx={{height:"90vh"}}>
                 <Grid container spacing={4}>
                     <Grid item xs={12}>
-                        <Button variant="outlined" onClick={this.handleOpen} startIcon={<AddBox />}>Add RelicXXX</Button>
+                        <Button variant="outlined" onClick={this.handleOpen} startIcon={<AddBox />}>Add Relic</Button>
                         <Dialog open={this.state.open} onClose={this.handleClose}>
                             <DialogTitle>Add new relic</DialogTitle>
                             <DialogContent>
