@@ -1,4 +1,8 @@
 {
+  "name": "wfrim",
+  "productName": "WFRIM",
+  "version": "1.0.0",
+  "description": "Warframe Relic Inventory Manager",
   "scripts": {
     "build": "concurrently \"npm run build:main\" \"npm run build:renderer\"",
     "build:main": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.main.prod.ts",
@@ -85,9 +89,33 @@
     },
     "extraResources": [
       "./assets/**"
-    ]
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "electron-react-boilerplate",
+      "repo": "electron-react-boilerplate"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrSofty123/wfrim.git"
+  },
+  "author": {
+    "name": "MrSofty",
+    "email": "shaheer1642@gmail.com"
   },
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MrSofty123/wfrim/issues"
+  },
+  "keywords": [
+    "warframe",
+    "wfrim",
+    "relic",
+    "inventory",
+    "manager"
+  ],
+  "homepage": "https://github.com/MrSofty123/wfrim#readme",
   "jest": {
     "testURL": "http://localhost/",
     "testEnvironment": "jsdom",
@@ -125,7 +153,6 @@
     "@types/node": "17.0.23",
     "@types/react": "^17.0.43",
     "@types/react-dom": "^17.0.14",
-    "@types/react-swipeable-views": "^0.13.1",
     "@types/react-test-renderer": "^17.0.1",
     "@types/terser-webpack-plugin": "^5.0.4",
     "@types/webpack-bundle-analyzer": "^4.4.1",
@@ -141,7 +168,7 @@
     "css-minimizer-webpack-plugin": "^3.4.1",
     "detect-port": "^1.3.0",
     "electron": "^18.0.1",
-    "electron-builder": "^22.5.1",
+    "electron-builder": "^23.0.3",
     "electron-devtools-installer": "^3.2.0",
     "electron-notarize": "^1.2.1",
     "electron-rebuild": "^3.2.7",
@@ -187,19 +214,13 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
-    "@emotion/react": "^11.9.0",
-    "@emotion/styled": "^11.8.1",
-    "@mui/icons-material": "^5.6.1",
-    "@mui/material": "^5.6.1",
     "electron-debug": "^3.2.0",
     "electron-log": "^4.4.6",
     "electron-updater": "^4.6.5",
-    "fs": "^0.0.1-security",
     "history": "^5.3.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-router-dom": "^6.3.0",
-    "react-swipeable-views": "^0.14.0"
+    "react-router-dom": "^6.3.0"
   },
   "devEngines": {
     "node": ">=14.x",
@@ -219,8 +240,5 @@
       }
     ],
     "singleQuote": true
-  },
-  "browser": {
-    "fs": false
- }
+  }
 }

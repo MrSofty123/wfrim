@@ -4,6 +4,7 @@ import './App.css';
 import SwipeableViews from 'react-swipeable-views';
 import {Tabs, Tab, Box, Typography, useTheme, AppBar} from '@mui/material';
 import Inventory from './components/inventory';
+import icon from '../../assets/icon.svg';
 
 export default function App() {
   return (
@@ -62,7 +63,7 @@ function FullWidthTabs() {
   };
 
   return (
-    <Box sx={{ bgcolor: 'background.paper', width: 1000 }}>
+    <Box sx={{ bgcolor: 'background.paper', width: "100vw", height: "100vh"}}>
       <AppBar position="static">
         <Tabs
           value={value}

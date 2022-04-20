@@ -1,12 +1,13 @@
 {
-  "name": "electron-react-boilerplate",
-  "version": "4.5.0",
-  "description": "A foundation for scalable desktop apps",
+  "name": "wfrim",
+  "productName": "WFRIM",
+  "version": "4.5.1",
+  "description": "Warframe Relic Inventory Manager",
   "main": "./dist/main/main.js",
   "author": {
-    "name": "Electron React Boilerplate Maintainers",
-    "email": "electronreactboilerplate@gmail.com",
-    "url": "https://github.com/electron-react-boilerplate"
+    "name": "MrSofty",
+    "email": "shaheer1642@gmail.com",
+    "url": "https://github.com/MrSofty123/wfrim"
   },
   "scripts": {
     "electron-rebuild": "node -r ts-node/register ../../.erb/scripts/electron-rebuild.js",

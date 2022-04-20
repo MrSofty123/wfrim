@@ -9,6 +9,7 @@ import {
     Box,
     Card,
     CardContent,
+    CardActionArea,
     Typography,
     Avatar,
     Grid
@@ -20,11 +21,14 @@ import {
     Delete
 } from '@mui/icons-material';
 import React from 'react';
+import {event} from '../eventHandler'
+import lith from '../../../assets/lith.png'
+import meso from '../../../assets/meso.png'
+import neo from '../../../assets/neo.png'
+import axi from '../../../assets/axi.png'
 //import { readFileSync,writeFileSync } from 'fs';
 //import { readFileSync } from 'original-fs';
-import dbfile from './relicDB.json'
-import fs from 'fs'
-import path from 'path';
+//import dbfile from './relicDB.json'
 //var dbfile = fs.readFileSync(path.join(__dirname,  'relicDB.json'))
 //import dbfile from './relicDB.json'
 //const dbfile = fs.readFileSync('./relicDB.json')
@@ -58,135 +62,24 @@ var relicDB = [{
         display: 'block'
     },
 ]*/
+
+
 interface relicProps {
     name: string,
     quantity: number,
     opened: number,
     display: string
 }
-var relicDB:Array<relicProps> = dbfile
+var relicDB:Array<relicProps> = []
+
+event.on('relicDBFetch', (data) => {
+    relicDB = data
+    inventory.forceUpdate()
+})
 
 export default function() {
-    return <Inventory/>
+    return inventory
 }
-/*
-export default function Inventory() {
-    const [items,setItems] = React.useState(itemComponents.map((item: any, i: number) => item))
-    //var relicDB:Record<string,relicProps> = {}
-
-
-
-    const handleClickOpen = () => {
-      setOpen(true);
-    };
-  
-    const handleClose = () => {
-      setOpen(false);
-    };
-
-    const handleAdd = () => {
-        setOpen(false);
-        itemComponents.push(
-            <Box sx={{ width:200, height:175 }}>
-              <Card variant="outlined" id={`card_${input}`}><RelicCard name={input}/></Card>
-            </Box>
-        )
-        setItems(itemComponents.map((item: any, i: number) => item))
-    };
-
-    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setInput(event.target.value)
-    }
-
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter')
-            handleAdd()
-    }
-
-    function handleRelicAddOne(id:number) {
-        console.log('add one relic: ' + id)
-        relicDB[id].quantity++
-    }
-    function handleRelicRemoveOne(id:number) {
-        console.log('remove one relic: ' + id)
-        relicDB[id].quantity--
-    }
-    function handleRelicDelete(id:number) {
-        console.log('delete relic: ' + id)
-    }
-    function CreateCard(props:any) {
-        console.log("======================================================" + props.id)
-        return (<React.Fragment>
-             <CardContent>
-                <Typography variant="h6" component="div">
-                    {props.id}
-                </Typography>
-                <Typography sx={{ mb: 1.5 }} color="text.secondary">
-                    <Avatar
-                    alt="relic.png"
-                    src="./assets/icons/lith"
-                    sx={{ width: 24, height: 24 }}
-                    />
-                </Typography>
-                <Typography variant="body2">
-                    <Grid container spacing={2} justifyContent="center" alignItems="center">
-                        <Grid item xs={6}>
-                            Owned: {relicDB[props.id].quantity}
-                        </Grid>
-                        <Grid item xs={6}>
-                            Opened: {relicDB[props.id].opened}
-                        </Grid>
-                        <ButtonGroup disableElevation variant="contained">
-                            <IconButton aria-label="plusone" color="success" onClick={() => handleRelicAddOne(props.id)}><PlusOne /></IconButton>
-                            <IconButton aria-label="minusone" color="secondary" onClick={() => handleRelicRemoveOne(props.id)}><PlusOne /></IconButton>
-                            <IconButton aria-label="delete" color="error" onClick={() => handleRelicDelete(props.id)}><Delete /></IconButton>
-                        </ButtonGroup>
-                    </Grid>
-                </Typography>
-            </CardContent>
-        </React.Fragment>)
-    }
-    
-    return (
-        <Box sx={{height:500}}>
-            <Grid container spacing={4}>
-                <Grid item xs={12}>
-                    <Button variant="outlined" onClick={handleClickOpen} startIcon={<AddBox />}>Add Relic</Button>
-                    <Dialog open={open} onClose={handleClose}>
-                    <DialogTitle>Add new relic</DialogTitle>
-                    <DialogContent>
-                        <TextField
-                            autoFocus
-                            margin="dense"
-                            id="relic_name"
-                            label="e.g. axi t2"
-                            fullWidth
-                            variant="standard"
-                            onChange={handleChange}
-                            onKeyDown={handleKeyDown}
-                        />
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={handleAdd}>Add</Button>
-                        <Button onClick={handleClose}>Cancel</Button>
-                    </DialogActions>
-                    </Dialog>
-                </Grid>
-                <Grid item xs={12}>
-                    <Box sx={{ flexGrow: 1 }}>
-                    <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
-                        {items.map((item:any, i:number) => {
-                            return item
-                        })}
-                    </Grid>
-                    </Box>
-                </Grid>
-            </Grid>
-        </Box>
-    )
-}
-*/
-
 interface IRelicCardProps {
     name: string
 }
@@ -195,6 +88,7 @@ interface IInventoryState {
     updateCards: boolean,
     input: string
 }
+
 class Inventory extends React.Component<any,IInventoryState> {
     constructor(props:any) {
       super(props);
@@ -238,49 +132,51 @@ class Inventory extends React.Component<any,IInventoryState> {
         }
     }
 
+
     render() {
         return (
-            <Box sx={{height:500}}>
+            <Box sx={{height:"90vh"}}>
                 <Grid container spacing={4}>
                     <Grid item xs={12}>
                         <Button variant="outlined" onClick={this.handleOpen} startIcon={<AddBox />}>Add Relic</Button>
                         <Dialog open={this.state.open} onClose={this.handleClose}>
-                        <DialogTitle>Add new relic</DialogTitle>
-                        <DialogContent>
-                            <TextField
-                                autoFocus
-                                margin="dense"
-                                id="relic_name"
-                                label="e.g. axi t2"
-                                fullWidth
-                                variant="standard"
-                                onChange={this.handleChange}
-                                onKeyDown={this.handleKeyDown}
-                            />
-                        </DialogContent>
-                        <DialogActions>
-                            <Button onClick={this.handleAdd}>Add</Button>
-                            <Button onClick={this.handleClose}>Cancel</Button>
-                        </DialogActions>
+                            <DialogTitle>Add new relic</DialogTitle>
+                            <DialogContent>
+                                <TextField
+                                    autoFocus
+                                    margin="dense"
+                                    id="relic_name"
+                                    label="e.g. axi t2"
+                                    fullWidth
+                                    variant="standard"
+                                    onChange={this.handleChange}
+                                    onKeyDown={this.handleKeyDown}
+                                />
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={this.handleAdd}>Add</Button>
+                                <Button onClick={this.handleClose}>Cancel</Button>
+                            </DialogActions>
                         </Dialog>
                     </Grid>
                     <Grid item xs={12}>
-                        <Box sx={{ flexGrow: 1 }}>
-                        <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
-                            {this.state.updateCards}
-                            {relicDB.map((relic:any, i:number) => {
-                                return <Box sx={{ width:200, height:175, display:relic.display}}>
-                                  <Card variant="outlined"><RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} childCallback={this.childCallback}/></Card>
-                                </Box>
-                            })}
-                        </Grid>
-                        </Box>
+                            <Grid container spacing={1} justify="center">
+                                {this.state.updateCards}
+                                {relicDB.map((relic:any, i:number) => {
+                                    return <Grid item xs={6} sm={4} md={2} lg={1.5}>
+                                        <Card variant="outlined"><RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} childCallback={this.childCallback}/></Card>
+                                    </Grid>
+                                })}
+                            </Grid>
                     </Grid>
                 </Grid>
             </Box>
         )
     }
 }
+
+const inventory = new Inventory('new')
+
 interface IRelicCardProps {
     name: string,
     quantity: number,
@@ -291,7 +187,8 @@ interface IRelicCardState {
     name: string,
     quantity: number,
     opened: number,
-    childCallback: Function
+    childCallback: Function,
+    image: string
 }
 class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
     constructor(props:any) {
@@ -300,9 +197,9 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
         name: this.props.name,
         quantity: this.props.quantity,
         opened: this.props.opened,
-        childCallback: this.props.childCallback
+        childCallback: this.props.childCallback,
+        image: this.props.name.match('Lith')? lith:this.props.name.match('Meso')? meso:this.props.name.match('Neo')? meso:this.props.name.match('Axi')? axi:''
       };
-      this.componentDidCatch
     }
     updateRelicDB = () => {
         relicDB.map((relic,i) => {
@@ -325,33 +222,42 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
     }
     render() {
         return (<React.Fragment>
-             <CardContent>
-                <Typography variant="h6" component="div">
-                    {this.state.name}
-                </Typography>
-                <Typography sx={{ mb: 1.5 }} color="text.secondary">
-                    <Avatar
-                    alt="relic.png"
-                    src='assets/lith'
-                    sx={{ width: 24, height: 24 }}
-                    />
-                </Typography>
-                <Typography variant="body2">
+            <CardActionArea>
+                <CardContent>
                     <Grid container spacing={2} justifyContent="center" alignItems="center">
-                        <Grid item xs={6}>
-                            Owned: {this.state.quantity}
+                        <Grid item xs={3}>
+                            <Typography sx={{ mb: 1.5 }} color="text.secondary">
+                                <Avatar
+                                    alt="relic.png"
+                                    src={this.state.image}
+                                    sx={{ width: 32, height: 32 }}
+                                />
+                            </Typography>
                         </Grid>
-                        <Grid item xs={6}>
-                            Opened: {this.state.opened}
+                        <Grid item xs={7}>
+                            <Typography variant="h6" component="div">
+                                {this.state.name}
+                            </Typography>
                         </Grid>
-                        <ButtonGroup disableElevation variant="contained">
-                            <IconButton aria-label="plusone" color="success" onClick={this.handleRelicAddOne}><Add /></IconButton>
-                            <IconButton aria-label="minusone" color="secondary" onClick={this.handleRelicRemoveOne}><Remove /></IconButton>
-                            <IconButton aria-label="delete" color="error" onClick={this.handleRelicDelete}><Delete /></IconButton>
-                        </ButtonGroup>
+                        <Grid item xs={2}></Grid>
                     </Grid>
-                </Typography>
-            </CardContent>
+                    <Typography variant="body2">
+                        <Grid container spacing={2} justifyContent="center" alignItems="center">
+                            <Grid item xs={6}>
+                                Owned: {this.state.quantity}
+                            </Grid>
+                            <Grid item xs={6}>
+                                Opened: {this.state.opened}
+                            </Grid>
+                            <ButtonGroup disableElevation variant="contained">
+                                <IconButton aria-label="plusone" color="success" onClick={this.handleRelicAddOne}><Add /></IconButton>
+                                <IconButton aria-label="minusone" color="secondary" onClick={this.handleRelicRemoveOne}><Remove /></IconButton>
+                                <IconButton aria-label="delete" color="error" onClick={this.handleRelicDelete}><Delete /></IconButton>
+                            </ButtonGroup>
+                        </Grid>
+                    </Typography>
+                </CardContent>
+            </CardActionArea>
         </React.Fragment>)
     }
 }

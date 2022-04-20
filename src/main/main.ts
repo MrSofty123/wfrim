@@ -14,6 +14,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+import fs from 'fs';
 
 export default class AppUpdater {
   constructor() {
@@ -30,6 +31,7 @@ ipcMain.on('ipc-example', async (event, arg) => {
   console.log(msgTemplate(arg));
   event.reply('ipc-example', msgTemplate('pong'));
 });
+
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -69,6 +71,8 @@ const createWindow = async () => {
     return path.join(RESOURCES_PATH, ...paths);
   };
 
+  //const {width, height} = Electron.screen.getPrimaryDisplay().workAreaSize
+
   mainWindow = new BrowserWindow({
     show: false,
     width: 1024,
@@ -79,6 +83,7 @@ const createWindow = async () => {
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
     },
+    title: 'WFRIM'
   });
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
@@ -110,6 +115,15 @@ const createWindow = async () => {
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
   new AppUpdater();
+
+  ipcMain.on('getRelicDB', (event,arg) => {
+      console.log('Main request: getRelicDB')
+      fs.readFile(getAssetPath('data/relicDB.json'),'utf8',(err,data) => {
+        if (err)
+          console.log(err)
+        event.reply('getRelicDB', err ? {data: err, success:false}:{data: data.replace(/^\uFEFF/, ''), success:true});
+      })
+  })
 };
 
 /**
@@ -135,3 +149,17 @@ app
     });
   })
   .catch(console.log);
+
+  /*
+ipcMain.on('request-mainprocess-action', (event,arg) => {
+    if (arg.request == 'getRelicDB') {
+      console.log('Main request: getRelicDB')
+
+      fs.readFile('./assets/data/relicDB.json','utf8',(err,data) => {
+        if (err)
+          console.log(err)
+        event.sender.send('mainprocess-response', err ? {data: err, success:false}:{data: data.replace(/^\uFEFF/, ''), success:true})
+      })
+    }
+})
+*/

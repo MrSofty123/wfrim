@@ -2,20 +2,24 @@
  * @NOTE: Prepend a `~` to css file paths that are in your node_modules
  *        See https://github.com/webpack-contrib/sass-loader#imports
  */
+ * {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  font-size: 100%;
+  vertical-align: baseline;
+  background: transparent;
+}
 body {
   position: relative;
   height: 100vh;
-  background: linear-gradient(
-    200.96deg,
-    #4d4c49 -29.09%,
-    #37196e 51.77%,
-    #000000 129.35%
-  );
+  width: 100vw;
   font-family: sans-serif;
   overflow-y: hidden;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  padding-left: 0%;
+  padding-top: 0%;
 }
 
 button {
