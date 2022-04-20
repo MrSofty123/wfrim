@@ -28,7 +28,7 @@ import neo from '../../../assets/neo.png'
 import axi from '../../../assets/axi.png'
 //import { readFileSync,writeFileSync } from 'fs';
 //import { readFileSync } from 'original-fs';
-//import dbfile from './relicDB.json'
+//import dbfile from './relicDB.json'/
 //var dbfile = fs.readFileSync(path.join(__dirname,  'relicDB.json'))
 //import dbfile from './relicDB.json'
 //const dbfile = fs.readFileSync('./relicDB.json')
