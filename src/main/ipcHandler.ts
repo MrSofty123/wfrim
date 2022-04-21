@@ -50,7 +50,6 @@ function preprocessor() {
         }
     });
 }
-//e0d5c3d4-4803-4895-8f9e-cd181464b013
 function pushRelicDB() {
     if (!pool) {
         setTimeout(pushRelicDB, 1000);
