@@ -1,7 +1,7 @@
 {
   "name": "wfrim",
   "productName": "WFRIM",
-  "version": "4.6.2",
+  "version": "4.6.3",
   "description": "Warframe Relic Inventory Manager",
   "main": "./dist/main/main.js",
   "author": {
@@ -15,7 +15,8 @@
     "postinstall": "npm run electron-rebuild && npm run link-modules"
   },
   "dependencies": {
-    "fs": "^0.0.1-security"
+    "fs": "^0.0.1-security",
+    "pg": "^8.7.3"
   },
   "license": "MIT"
 }
