@@ -1,7 +1,7 @@
 {
   "name": "wfrim",
   "productName": "WFRIM",
-  "version": "4.6.0",
+  "version": "4.6.2",
   "description": "Warframe Relic Inventory Manager",
   "scripts": {
     "build": "concurrently \"npm run build:main\" \"npm run build:renderer\"",
@@ -77,8 +77,7 @@
       ],
       "asar": true,
       "icon": "./assets/icon.png",
-      "legalTrademarks": "(c) 2022 @MrSofty123",
-      "publisherName": "MrSofty123"
+      "legalTrademarks": "(c) 2022 @MrSofty123"
     },
     "linux": {
       "target": [
@@ -102,10 +101,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrSofty123/wfrim.git"
+    "url": "https://github.com/MrSofty123/wfrim.git"
   },
   "author": {
-    "name": "MrSofty",
+    "name": "MrSofty123",
     "email": "shaheer1642@gmail.com"
   },
   "license": "MIT",
@@ -155,6 +154,7 @@
     "@testing-library/react": "^13.0.0",
     "@types/jest": "^27.4.1",
     "@types/node": "17.0.23",
+    "@types/pg": "^8.6.5",
     "@types/react": "^17.0.43",
     "@types/react-dom": "^17.0.14",
     "@types/react-test-renderer": "^17.0.1",
@@ -197,6 +197,7 @@
     "lint-staged": "^11.1.4",
     "mini-css-extract-plugin": "^2.6.0",
     "opencollective-postinstall": "^2.0.3",
+    "pg": "^8.7.3",
     "prettier": "^2.6.2",
     "react-refresh": "^0.12.0",
     "react-refresh-typescript": "^2.0.4",

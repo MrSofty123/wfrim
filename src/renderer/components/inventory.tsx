@@ -147,6 +147,7 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
             if (relic.name == this.props.name)
                 relicDB[i].display = false
         })
+        event.emit('postRelicDB', relicDB)
         this.props.childCallback('updateCards')
     }
     render() {

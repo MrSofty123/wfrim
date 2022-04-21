@@ -27,8 +27,6 @@ export default class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 
-
-
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
@@ -138,16 +136,18 @@ app
   .catch(console.log);
 
 //------------------ autoUpdater HANDLES --------------------
-autoUpdater.on('checking-for-update', () => displayAlert('update','checking for updates'))
-autoUpdater.on('update-available', () => displayAlert('update','update available'));
-autoUpdater.on('update-not-available', () => displayAlert('update','update not available'));
-autoUpdater.on('error', (err) => displayAlert('update error',err));
-
 //------------------ mainEvent HANDLES --------------------
-mainEvent.on('error', (title,err) => {
-  displayAlert(title,err)
+mainEvent.on('error', (err) => {
+  displayAlert(err.title,err.text)
 })
 
-function displayAlert(title:string, msg:string) {
-  dialog.showMessageBox((mainWindow as BrowserWindow), { title: title, message: msg})
+//autoUpdater.on('checking-for-update', () => displayAlert('update', 'Checking for update.'))
+//autoUpdater.on('update-available', () => displayAlert('update','Update available.'));
+//autoUpdater.on('update-not-available', () => displayAlert('update','Update not available.'));
+//autoUpdater.on('update-downloaded', () => displayAlert('update','Update downloaded.'));
+//autoUpdater.on('error', (err) => displayAlert('update error',JSON.stringify(err)));
+//autoUpdater.on('download-progress', (progressObj) => displayAlert('update error','Downloaded: ' + progressObj.percent));
+
+function displayAlert(title:string, text:string) {
+  dialog.showMessageBox((mainWindow as BrowserWindow), { title: title, message: text})
 }

@@ -1,0 +1,6 @@
+owner: MrSofty123
+repo: wfrim
+provider: github
+updaterCacheDirName: wfrim-updater
+publisherName:
+  - MrSofty123
