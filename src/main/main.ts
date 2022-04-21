@@ -9,12 +9,13 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
-import fs from 'fs';
+import './ipcHandler'
+import {mainEvent} from './eventHandler'
 
 export default class AppUpdater {
   constructor() {
@@ -26,11 +27,6 @@ export default class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 
-ipcMain.on('ipc-example', async (event, arg) => {
-  const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-  console.log(msgTemplate(arg));
-  event.reply('ipc-example', msgTemplate('pong'));
-});
 
 
 if (process.env.NODE_ENV === 'production') {
@@ -115,15 +111,6 @@ const createWindow = async () => {
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
   new AppUpdater();
-
-  ipcMain.on('getRelicDB', (event,arg) => {
-      console.log('Main request: getRelicDB')
-      fs.readFile(getAssetPath('data/relicDB.json'),'utf8',(err,data) => {
-        if (err)
-          console.log(err)
-        event.reply('getRelicDB', err ? {data: err, success:false}:{data: data.replace(/^\uFEFF/, ''), success:true});
-      })
-  })
 };
 
 /**
@@ -150,16 +137,17 @@ app
   })
   .catch(console.log);
 
-  /*
-ipcMain.on('request-mainprocess-action', (event,arg) => {
-    if (arg.request == 'getRelicDB') {
-      console.log('Main request: getRelicDB')
+//------------------ autoUpdater HANDLES --------------------
+autoUpdater.on('checking-for-update', () => displayAlert('update','checking for updates'))
+autoUpdater.on('update-available', () => displayAlert('update','update available'));
+autoUpdater.on('update-not-available', () => displayAlert('update','update not available'));
+autoUpdater.on('error', (err) => displayAlert('update error',err));
 
-      fs.readFile('./assets/data/relicDB.json','utf8',(err,data) => {
-        if (err)
-          console.log(err)
-        event.sender.send('mainprocess-response', err ? {data: err, success:false}:{data: data.replace(/^\uFEFF/, ''), success:true})
-      })
-    }
+//------------------ mainEvent HANDLES --------------------
+mainEvent.on('error', (title,err) => {
+  displayAlert(title,err)
 })
-*/
+
+function displayAlert(title:string, msg:string) {
+  dialog.showMessageBox((mainWindow as BrowserWindow), { title: title, message: msg})
+}

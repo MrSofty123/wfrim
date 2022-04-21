@@ -2,8 +2,12 @@ import {
     Button, 
     IconButton,
     ButtonGroup,
-    Dialog,DialogTitle, 
+    Dialog,
+    DialogTitle, 
     DialogContent,
+    DialogContentText,
+    Alert,
+    AlertClassKey,
     TextField,
     DialogActions,
     Box,
@@ -26,49 +30,14 @@ import lith from '../../../assets/lith.png'
 import meso from '../../../assets/meso.png'
 import neo from '../../../assets/neo.png'
 import axi from '../../../assets/axi.png'
-//import { readFileSync,writeFileSync } from 'fs';
-//import { readFileSync } from 'original-fs';
-//import dbfile from './relicDB.json'/
-//var dbfile = fs.readFileSync(path.join(__dirname,  'relicDB.json'))
-//import dbfile from './relicDB.json'
-//const dbfile = fs.readFileSync('./relicDB.json')
-//import dbfile from 'renderer/components/fileHandler'
-//const fs = require('fs')
-//import path from 'path';
-//var dbfile = fs.readFileSync('./relicDB.json')
-//const icon = path.join(__dirname, "assets/lith.png");
-/*
-dbfile.forEach((relic,i) => {
-    if (!relic.display)
-        relicDB[i].display = 'block'
-})
-*/
-//var itemComponents:any = []
-/*
-var relicDB = [{
-        name: "axi_t1",
-        quantity: 52,
-        opened: 2,
-        display: 'block'
-    },{
-        name: "axi_t2",
-        quantity: 5,
-        opened: 24,
-        display: 'block'
-    },{
-        name: "axi_t3",
-        quantity: 555,
-        opened: 25,
-        display: 'block'
-    },
-]*/
-
+import Repeatable from 'react-repeatable'
+import {convertUpper,dynamicSort} from './extras'
 
 interface relicProps {
     name: string,
     quantity: number,
     opened: number,
-    display: string
+    display: boolean
 }
 var relicDB:Array<relicProps> = []
 
@@ -77,60 +46,34 @@ event.on('relicDBFetch', (data) => {
     inventory.forceUpdate()
 })
 
+event.on('error', (data) => {
+})
+
 export default function() {
     return inventory
 }
-interface IRelicCardProps {
-    name: string
-}
+
+
 interface IInventoryState {
-    open: boolean,
-    updateCards: boolean,
-    input: string
+    updateCards: boolean
 }
+
 
 class Inventory extends React.Component<any,IInventoryState> {
     constructor(props:any) {
       super(props);
       this.state = {
-        open: false,
-        updateCards: false,
-        input: ''
+        updateCards: false
       };
     }
-    handleOpen = () => {
-      this.setState({open: true});
-    };
-  
-    handleClose = () => {
-      this.setState({open: false});
-    };
 
-    handleAdd = () => {
-        this.setState({open: false});
-        relicDB.push({
-            name: this.state.input,
-            quantity: 0,
-            opened: 0,
-            display: 'block'
-        })
-        this.setState({updateCards: true});
-    };
-
-    handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        this.setState({input: event.target.value});
-    }
-
-    handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter')
-            this.handleAdd()
-    }
     childCallback = (option:string) => {
         if (option=="updateCards") {
-            console.log(JSON.stringify(relicDB))
+            //console.log(JSON.stringify(relicDB))
             this.setState({updateCards: true});
         }
     }
+    
 
 
     render() {
@@ -138,36 +81,19 @@ class Inventory extends React.Component<any,IInventoryState> {
             <Box sx={{height:"90vh"}}>
                 <Grid container spacing={4}>
                     <Grid item xs={12}>
-                        <Button variant="outlined" onClick={this.handleOpen} startIcon={<AddBox />}>Add Relic</Button>
-                        <Dialog open={this.state.open} onClose={this.handleClose}>
-                            <DialogTitle>Add new relic</DialogTitle>
-                            <DialogContent>
-                                <TextField
-                                    autoFocus
-                                    margin="dense"
-                                    id="relic_name"
-                                    label="e.g. axi t2"
-                                    fullWidth
-                                    variant="standard"
-                                    onChange={this.handleChange}
-                                    onKeyDown={this.handleKeyDown}
-                                />
-                            </DialogContent>
-                            <DialogActions>
-                                <Button onClick={this.handleAdd}>Add</Button>
-                                <Button onClick={this.handleClose}>Cancel</Button>
-                            </DialogActions>
-                        </Dialog>
+                        <AddRelic childCallback={this.childCallback}/>
                     </Grid>
                     <Grid item xs={12}>
-                            <Grid container spacing={1} justify="center">
-                                {this.state.updateCards}
-                                {relicDB.map((relic:any, i:number) => {
+                        <Grid container spacing={1}>
+                            {this.state.updateCards}
+                            {relicDB.map((relic:any, i:number) => {
+                                console.log('Creating card ' + relic.name)
+                                if (relic.display || !relic.hasOwnProperty("display"))
                                     return <Grid item xs={6} sm={4} md={2} lg={1.5}>
                                         <Card variant="outlined"><RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} childCallback={this.childCallback}/></Card>
                                     </Grid>
-                                })}
-                            </Grid>
+                            })}
+                        </Grid>
                     </Grid>
                 </Grid>
             </Box>
@@ -190,6 +116,8 @@ interface IRelicCardState {
     childCallback: Function,
     image: string
 }
+
+
 class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
     constructor(props:any) {
       super(props);
@@ -198,7 +126,7 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
         quantity: this.props.quantity,
         opened: this.props.opened,
         childCallback: this.props.childCallback,
-        image: this.props.name.match('Lith')? lith:this.props.name.match('Meso')? meso:this.props.name.match('Neo')? meso:this.props.name.match('Axi')? axi:''
+        image: this.props.name.match('Lith')? lith:this.props.name.match('Meso')? meso:this.props.name.match('Neo')? neo:this.props.name.match('Axi')? axi:''
       };
     }
     updateRelicDB = () => {
@@ -206,17 +134,18 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
             if (relic.name == this.props.name)
                 relicDB[i].quantity = this.state.quantity
         })
+        event.emit('postRelicDB', relicDB)
     }
     handleRelicAddOne = () => {
-        this.setState({quantity: this.state.quantity+1},this.updateRelicDB)
+        this.setState({quantity: (this.state.quantity as number)+1},this.updateRelicDB)
     }
     handleRelicRemoveOne = () => {
-        this.setState({quantity: this.state.quantity-1},this.updateRelicDB);
+        this.setState({quantity: (this.state.quantity as number)-1},this.updateRelicDB);
     }
     handleRelicDelete = () => {
         relicDB.map((relic,i) => {
             if (relic.name == this.props.name)
-                relicDB[i].display = 'none'
+                relicDB[i].display = false
         })
         this.props.childCallback('updateCards')
     }
@@ -250,8 +179,12 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
                                 Opened: {this.state.opened}
                             </Grid>
                             <ButtonGroup disableElevation variant="contained">
-                                <IconButton aria-label="plusone" color="success" onClick={this.handleRelicAddOne}><Add /></IconButton>
-                                <IconButton aria-label="minusone" color="secondary" onClick={this.handleRelicRemoveOne}><Remove /></IconButton>
+                                <Repeatable onHold={this.handleRelicAddOne}>
+                                    <IconButton aria-label="plusone" color="success" onClick={this.handleRelicAddOne}><Add /></IconButton>
+                                </Repeatable>
+                                <Repeatable onHold={this.handleRelicRemoveOne}>
+                                    <IconButton aria-label="minusone" color="secondary" onClick={this.handleRelicRemoveOne}><Remove /></IconButton>
+                                </Repeatable>
                                 <IconButton aria-label="delete" color="error" onClick={this.handleRelicDelete}><Delete /></IconButton>
                             </ButtonGroup>
                         </Grid>
@@ -259,5 +192,118 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
                 </CardContent>
             </CardActionArea>
         </React.Fragment>)
+    }
+}
+
+interface IAddRelicProps {
+    childCallback: Function
+}
+interface IAddRelicState {
+    open: boolean,
+    input: string,
+    dialogMsg: string,
+    childCallback: Function
+}
+class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
+    constructor(props:any) {
+        super(props);
+        this.state = {
+          open: false,
+          input: '',
+          dialogMsg: '',
+          childCallback: this.props.childCallback,
+        };
+      }
+
+    handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        this.setState({input: event.target.value});
+    }
+
+    handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter')
+            this.handleAdd()
+    }
+
+    handleOpen = () => {
+      this.setState({open: true});
+    };
+  
+    handleClose = () => {
+      this.setState({open: false,input: '',dialogMsg:''});
+    };
+
+    handleAdd = () => {
+        const str = this.state.input.toLowerCase().replace('relic','')
+        if (str.match('lith') || str.match('meso') || str.match('neo') || str.match('axi') || str.match('requiem')) {
+            var exists = 0
+            relicDB.map((relic,i) => {
+                if (relic.name.toLowerCase() == str && relic.display == false) {
+                    relicDB[i].display = true
+                    exists = 2
+                } else if (relic.name.toLowerCase() == str)
+                    exists = 1
+            })
+            if (exists == 1) {
+                this.setState({dialogMsg: 'Already exists: ' + convertUpper(str) + ' Relic',input: ''});
+            } 
+            else if (exists == 2) {
+                this.setState({dialogMsg: 'Re-activated: ' + convertUpper(str) + ' Relic',input: ''});
+                this.props.childCallback('updateCards')
+                event.emit('postRelicDB', relicDB)
+            } else if (exists == 0) {
+                relicDB.push({
+                    name: convertUpper(str),
+                    quantity: 0,
+                    opened: 0,
+                    display: true
+                })
+                relicDB = relicDB.sort(dynamicSort("name"))
+                this.setState({dialogMsg: 'Added: ' + convertUpper(str) + ' Relic',input: ''});
+                this.props.childCallback('updateCards')
+                event.emit('postRelicDB', relicDB)
+            }
+        } else {
+            this.setState({dialogMsg: 'Invalid relic: ' + convertUpper(str),input: ''});
+        }
+    };
+
+    alertValue = () => {
+        if (this.state.dialogMsg.toLowerCase().match('added:') || this.state.dialogMsg.toLowerCase().match('re-activated:'))
+            return (<Alert variant="outlined" severity="success">{this.state.dialogMsg}</Alert>)
+        else if (this.state.dialogMsg.toLowerCase().match('invalid relic:'))
+            return (<Alert variant="outlined" severity="error">{this.state.dialogMsg}</Alert>)
+        else if (this.state.dialogMsg.toLowerCase().match('already exists:'))
+            return (<Alert variant="outlined" severity="info">{this.state.dialogMsg}</Alert>)
+        else
+            return ''
+    }
+
+    render() {
+        const alert = this.alertValue()
+        return (<React.Fragment>
+            <Button variant="outlined" onClick={this.handleOpen} startIcon={<AddBox />}>Add Relic</Button>
+            <Dialog open={this.state.open} onClose={this.handleClose} fullWidth={true} maxWidth={"sm"}>
+                <DialogTitle>Add New Relic</DialogTitle>
+                <DialogContent>
+                    {alert}
+                    <TextField
+                        autoFocus
+                        required
+                        margin="dense"
+                        label="e.g. axi t2"
+                        fullWidth
+                        variant="standard"
+                        onChange={this.handleChange}
+                        onKeyUp={this.handleKeyDown}
+                        value={this.state.input}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={this.handleAdd}>Add</Button>
+                    <Button onClick={this.handleClose}>Close</Button>
+                </DialogActions>
+            </Dialog>
+        </React.Fragment>
+        )
     }
 }

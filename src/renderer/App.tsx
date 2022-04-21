@@ -4,7 +4,6 @@ import './App.css';
 import SwipeableViews from 'react-swipeable-views';
 import {Tabs, Tab, Box, Typography, useTheme, AppBar} from '@mui/material';
 import Inventory from './components/inventory';
-import icon from '../../assets/icon.svg';
 
 export default function App() {
   return (

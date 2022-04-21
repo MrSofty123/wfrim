@@ -22,6 +22,18 @@ window.electron.ipcRenderer.once('getRelicDB', (arg) => {
 });
 window.electron.ipcRenderer.requestMain('getRelicDB', []);
 
+event.on('postRelicDB', (arg) => {
+  window.electron.ipcRenderer.requestMain('postRelicDB', arg);
+})
+
+
+window.electron.ipcRenderer.once('error', (arg) => {
+  // eslint-disable-next-line no-console
+  console.log('Render response: error')
+  if (arg.data)
+    event.emit('error', JSON.parse(arg.data))
+});
+
 /*
 window.electron.ipcRenderer.send('request-mainprocess-action', {request: 'getRelicDB'});
 window.electron.ipcRenderer.receive('mainprocess-response', (args:any) => {
