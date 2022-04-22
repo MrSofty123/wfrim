@@ -14,7 +14,7 @@ const appFolder = Os.homedir() + '/Documents/WFRIM/'
 
 database_connection().then(res => pool=(res as PoolClient)).catch(err => emitError('Database connection failure', err))
 
-setTimeout(pushRelicDB, 180000);
+setInterval(pushRelicDB, 180000);
 setImmediate(pushRelicDB)
 
 function pushRelicDB() {

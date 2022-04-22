@@ -33,6 +33,15 @@ function preprocessor() {
             //any new changes
         }
     });
+    // items_list.json
+    var filepath = appFolder + 'items_list.json'
+    fs.open(filepath,'r',function(notexists, f) {
+        if (notexists) {
+            fs.writeFile( filepath, "[]", (err) => {
+                if (err) emitError(`Error creating directory ${filepath}`,err)
+            });
+        }
+    });
 }
 
 ipcMain.on('postRelicDB', (event,arg) => {
