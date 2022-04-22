@@ -40,10 +40,15 @@ interface relicProps {
     display: boolean
 }
 var relicDB:Array<relicProps> = []
+var items_list:Array<object> = []
 
 event.on('relicDBFetch', (data) => {
     relicDB = data
     inventory.forceUpdate()
+})
+event.on('itemsListFetch', (data) => {
+    items_list = data
+    //inventory.forceUpdate()
 })
 
 event.on('error', (data) => {
@@ -53,11 +58,9 @@ export default function() {
     return inventory
 }
 
-
 interface IInventoryState {
     updateCards: boolean
 }
-
 
 class Inventory extends React.Component<any,IInventoryState> {
     constructor(props:any) {

@@ -14,18 +14,23 @@ window.electron.ipcRenderer.once('ipc-example', (arg) => {
 });
 window.electron.ipcRenderer.myPing();
 
+window.electron.ipcRenderer.requestMain('getRelicDB', []);
 window.electron.ipcRenderer.once('getRelicDB', (arg) => {
   // eslint-disable-next-line no-console
   console.log('Render response: getRelicDB')
   if (arg.success)
     event.emit('relicDBFetch', JSON.parse(arg.data))
 });
-window.electron.ipcRenderer.requestMain('getRelicDB', []);
 
 event.on('postRelicDB', (arg) => {
   window.electron.ipcRenderer.requestMain('postRelicDB', arg);
 })
 
+window.electron.ipcRenderer.requestMain('getItemsList', []);
+window.electron.ipcRenderer.once('getItemsList', (arg) => {
+    console.log('Render response: getItemsList')
+    event.emit('itemsListFetch', arg)
+});
 
 window.electron.ipcRenderer.once('error', (arg) => {
   // eslint-disable-next-line no-console

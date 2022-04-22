@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.send(channel, args);
     },
     on(channel: string, func: (...args: object[]) => void) {
-      const validChannels = ['ipc-example','getRelicDB'];
+      const validChannels = ['ipc-example','getRelicDB','getItemsList'];
       if (validChannels.includes(channel)) {
         const subscription = (_event: IpcRendererEvent, ...args: object[]) =>
           func(...args);
@@ -34,7 +34,7 @@ contextBridge.exposeInMainWorld('electron', {
       return undefined;
     },
     once(channel: string, func: (...args: unknown[]) => void) {
-      const validChannels = ['ipc-example','getRelicDB'];
+      const validChannels = ['ipc-example','getRelicDB','getItemsList'];
       if (validChannels.includes(channel)) {
         // Deliberately strip event as it includes `sender`
         ipcRenderer.once(channel, (_event, ...args) => func(...args));

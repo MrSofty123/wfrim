@@ -15,6 +15,7 @@ const appFolder = Os.homedir() + '/Documents/WFRIM/'
 database_connection().then(res => pool=(res as PoolClient)).catch(err => emitError('Database connection failure', err))
 
 setInterval(pushRelicDB, 180000);
+setTimeout(getItemsList, 1000)
 setImmediate(pushRelicDB)
 
 function pushRelicDB() {
@@ -37,6 +38,8 @@ function pushRelicDB() {
     (pool as PoolClient).connect((err:any, client:PoolClient, release:any) => {
         if (err) {
             emitError('Error database connection', err)
+            release()
+            return;
         }
         client.query(`DO $$ BEGIN
                         IF NOT EXISTS (SELECT * FROM wfrim_db WHERE device_id = '${(config as Iconfig).device_id}') THEN
@@ -44,7 +47,7 @@ function pushRelicDB() {
                         END IF;
                     END $$;`, (err, res) => {
             if (err) {
-                emitError('error', err)
+                emitError('DB Error', err)
                 release()
                 return;
             }
@@ -63,6 +66,34 @@ function pushRelicDB() {
                     }
                 })
             })
+        })
+    })
+}
+
+function getItemsList() {
+    console.log('getItemsList')
+    if (!pool) {
+        setTimeout(getItemsList, 1000);
+        console.log('db not ready yet')
+        return;
+    } 
+    (pool as PoolClient).connect((err:any, client:PoolClient, release:any) => {
+        if (err) {
+            emitError('Error database connection', err)
+            release()
+            return
+        }
+        client.query(`SELECT * from items_list`, (err, res) => {
+            release()
+            if (err) {
+                emitError('DB failed to retrieve items_list', err)
+                return;
+            }
+            const filepath = appFolder + 'items_list.json'
+            fs.writeFile( filepath, JSON.stringify(res.rows), (err) => {
+                if (err) emitError(`Error writing to file ${filepath}`,err)
+            });
+            mainEvent.emit('fetchItemsList', res.rows)
         })
     })
 }

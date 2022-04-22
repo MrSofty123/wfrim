@@ -1,5 +1,5 @@
 
-import { ipcMain } from 'electron';
+import { ipcMain, ipcRenderer } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import Os from 'os'
@@ -9,6 +9,7 @@ import './modules/db_module'
 
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
 preprocessor()
+
 
 function preprocessor() {
     ensureDirectoryExistence(appFolder)
@@ -84,6 +85,17 @@ function ensureDirectoryExistence(filePath:string) {
 function emitError(title:string,err:any) {
     mainEvent.emit('error', {title: title, text: JSON.stringify(err)})
 }
+
+var items_list:Array<object> = []
+
+mainEvent.on('fetchItemsList', (arg) => {
+    items_list = arg
+})
+
+ipcMain.on('getItemsList', (event,arg) => {
+    console.log('Main request: getItemsList')
+    event.reply('getItemsList', items_list);
+})
 
 export {
 }
