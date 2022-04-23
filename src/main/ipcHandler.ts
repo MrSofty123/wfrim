@@ -1,5 +1,5 @@
 
-import { ipcMain, ipcRenderer } from 'electron';
+import { ipcMain } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import Os from 'os'
@@ -17,9 +17,25 @@ function preprocessor() {
     var filepath = appFolder + 'relicsDB.json'
     fs.open(filepath,'r',function(notexists, f) {
         if (notexists) {
+            var filepath = appFolder + 'relicsDB.json'
             fs.writeFile( filepath, "[]", (err) => {
                 if (err) emitError(`Error creating directory ${filepath}`,err)
+                else mainEvent.emit('relicDBFetch', [])
             });
+        } else {
+            var filepath = appFolder + 'relicsDB.json'
+            fs.readFile(filepath,'utf8',(err,data) => {
+                if (err) emitError(`Error reading file ${filepath}`,err)
+                else {
+                    try {
+                        data = JSON.parse(data)
+                    } catch (err) {
+                        emitError(`Error parsing data ${filepath}`,err)
+                        return;
+                    }
+                    mainEvent.emit('relicDBFetch', data)
+                }
+            })
         }
     });
     // config.json
@@ -27,6 +43,7 @@ function preprocessor() {
     fs.open(filepath,'r',function(notexists, f) {
         if (notexists) {
             var config = {device_id: randomUUID()}
+            var filepath = appFolder + 'config.json'
             fs.writeFile( filepath, JSON.stringify(config), (err) => {
                 if (err) emitError(`Error creating directory ${filepath}`,err)
             });
@@ -38,6 +55,7 @@ function preprocessor() {
     var filepath = appFolder + 'items_list.json'
     fs.open(filepath,'r',function(notexists, f) {
         if (notexists) {
+            var filepath = appFolder + 'items_list.json'
             fs.writeFile( filepath, "[]", (err) => {
                 if (err) emitError(`Error creating directory ${filepath}`,err)
             });
@@ -63,16 +81,6 @@ ipcMain.on('ipc-example', async (event, arg) => {
     event.reply('ipc-example', msgTemplate('pong'));
   });
 
-ipcMain.on('getRelicDB', (event,arg) => {
-    console.log('Main request: getRelicDB')
-
-    const filepath = appFolder + 'relicsDB.json'
-    fs.readFile(filepath,'utf8',(err,data) => {
-        if (err) emitError(`Error reading file ${filepath}`,err)
-        event.reply('getRelicDB', err ? {data: err, success:false}:{data: data.replace(/^\uFEFF/, ''), success:true});
-        mainEvent.emit('test', JSON.stringify(data))
-    })
-})
 
 function ensureDirectoryExistence(filePath:string) {
     var dirname = path.dirname(filePath);
@@ -86,8 +94,9 @@ function emitError(title:string,err:any) {
     mainEvent.emit('error', {title: title, text: JSON.stringify(err)})
 }
 
-var items_list:Array<object> = []
+//var items_list:Array<object> = []
 
+/*
 mainEvent.on('fetchItemsList', (arg) => {
     items_list = arg
 })
@@ -96,6 +105,7 @@ ipcMain.on('getItemsList', (event,arg) => {
     console.log('Main request: getItemsList')
     event.reply('getItemsList', items_list);
 })
+*/
 
 export {
 }

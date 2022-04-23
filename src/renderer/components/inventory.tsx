@@ -7,7 +7,8 @@ import {
     DialogContent,
     DialogContentText,
     Alert,
-    AlertClassKey,
+    FormControlLabel,
+    Checkbox,
     TextField,
     DialogActions,
     Box,
@@ -22,7 +23,8 @@ import {
     AddBox,
     Add,
     Remove,
-    Delete
+    Delete,
+    DriveEtaTwoTone
 } from '@mui/icons-material';
 import React from 'react';
 import {event} from '../eventHandler'
@@ -42,9 +44,20 @@ interface relicProps {
 var relicDB:Array<relicProps> = []
 var items_list:Array<object> = []
 
-event.on('relicDBFetch', (data) => {
+interface IshowTiers {
+    lith: boolean,
+    meso: boolean,
+    neo: boolean,
+    axi: boolean,
+}
+
+var showTiers:IshowTiers = {lith:true,meso:false,neo:true,axi:false}
+
+event.on('relicDBFetch', function relicDBFetch (data) {
     relicDB = data
-    inventory.forceUpdate()
+    //console.log(JSON.stringify(relicDB))
+    if (!inventory) setTimeout(relicDBFetch, 1000);
+    else inventory.forceUpdate()
 })
 event.on('itemsListFetch', (data) => {
     items_list = data
@@ -62,6 +75,7 @@ interface IInventoryState {
     updateCards: boolean
 }
 
+
 class Inventory extends React.Component<any,IInventoryState> {
     constructor(props:any) {
       super(props);
@@ -76,8 +90,6 @@ class Inventory extends React.Component<any,IInventoryState> {
             this.setState({updateCards: true});
         }
     }
-    
-
 
     render() {
         return (
@@ -90,11 +102,14 @@ class Inventory extends React.Component<any,IInventoryState> {
                         <Grid container spacing={1}>
                             {this.state.updateCards}
                             {relicDB.map((relic:any, i:number) => {
-                                console.log('Creating card ' + relic.name)
-                                if (relic.display || !relic.hasOwnProperty("display"))
-                                    return <Grid item xs={6} sm={4} md={2} lg={1.5}>
-                                        <Card variant="outlined"><RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} childCallback={this.childCallback}/></Card>
-                                    </Grid>
+                                //console.log('Creating card ' + relic.name)
+                                const arr = relic.name.split(' ')
+                                if (showTiers[arr[0].toLowerCase() as keyof IshowTiers]) {
+                                    if (relic.display || !relic.hasOwnProperty("display"))
+                                        return <Grid item xs={6} sm={4} md={2} lg={1.5}>
+                                            <Card variant="outlined"><RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} childCallback={this.childCallback}/></Card>
+                                        </Grid>
+                                }
                             })}
                         </Grid>
                     </Grid>
@@ -208,6 +223,8 @@ interface IAddRelicState {
     dialogMsg: string,
     childCallback: Function
 }
+
+
 class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
     constructor(props:any) {
         super(props);
@@ -282,10 +299,30 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
             return ''
     }
 
+    handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        console.log(event.target.id + ": " + event.target.checked)
+        showTiers[event.target.id as keyof IshowTiers] = event.target.checked
+        //console.log(JSON.stringify(showTiers))
+        this.props.childCallback('updateCards')
+    }
+
     render() {
         const alert = this.alertValue()
         return (<React.Fragment>
-            <Button variant="outlined" onClick={this.handleOpen} startIcon={<AddBox />}>Add Relic</Button>
+            
+            <Grid container spacing={2} justifyContent="center" alignItems="center">
+                <Grid item xs={6}>
+                    <Button variant="outlined" onClick={this.handleOpen} startIcon={<AddBox />}>Add Relic</Button>
+                </Grid>
+                <Grid item xs={6}>
+                    <div>
+                        <FormControlLabel control={<Checkbox defaultChecked={showTiers.lith ? true:false} onChange={this.handleCheckboxChange} id="lith"/>} label="Lith" />
+                        <FormControlLabel control={<Checkbox  defaultChecked={showTiers.meso ? true:false} onChange={this.handleCheckboxChange} id="meso"/>} label="Meso" />
+                        <FormControlLabel control={<Checkbox defaultChecked={showTiers.neo ? true:false} onChange={this.handleCheckboxChange} id="neo"/>} label="Neo" />
+                        <FormControlLabel control={<Checkbox defaultChecked={showTiers.axi ? true:false} onChange={this.handleCheckboxChange} id="axi"/>} label="Axi" />
+                    </div>
+                </Grid>
+            </Grid>
             <Dialog open={this.state.open} onClose={this.handleClose} fullWidth={true} maxWidth={"sm"}>
                 <DialogTitle>Add New Relic</DialogTitle>
                 <DialogContent>

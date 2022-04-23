@@ -9,7 +9,8 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, dialog } from 'electron';
+import { app, BrowserWindow, shell, dialog, ipcMain } from 'electron';
+import Electron from 'electron'
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
@@ -26,6 +27,8 @@ export default class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
+var rendererReady = 0
+ipcMain.on('rendererReady', (arg) => rendererReady = 1)
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -65,12 +68,11 @@ const createWindow = async () => {
     return path.join(RESOURCES_PATH, ...paths);
   };
 
-  //const {width, height} = Electron.screen.getPrimaryDisplay().workAreaSize
-
+  const {width, height} = Electron.screen.getPrimaryDisplay().workAreaSize
   mainWindow = new BrowserWindow({
     show: false,
-    width: 1024,
-    height: 728,
+    width: width*0.75,
+    height: height*0.90,
     icon: getAssetPath('icon.png'),
     webPreferences: {
       preload: app.isPackaged
@@ -86,6 +88,7 @@ const createWindow = async () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
     }
+    (mainWindow as BrowserWindow).webContents.send('mainReady', [])
     if (process.env.START_MINIMIZED) {
       mainWindow.minimize();
     } else {
@@ -109,6 +112,7 @@ const createWindow = async () => {
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
   new AppUpdater();
+
 };
 
 /**
@@ -141,6 +145,17 @@ mainEvent.on('error', (err) => {
   displayAlert(err.title,err.text)
 })
 
+mainEvent.on('itemsListFetch', function itemsListFetch(data) {
+  //console.log('************************************************************call itemsListFetch******************************************************************************')
+  if (!rendererReady || !mainWindow) setTimeout(itemsListFetch, 1000, data)
+  else mainWindow?.webContents.send('itemsListFetch', data)
+})
+mainEvent.on('relicDBFetch', function relicDBFetch(data) {
+  //console.log('************************************************************call itemsListFetch******************************************************************************')
+  if (!rendererReady || !mainWindow) setTimeout(relicDBFetch, 1000, data)
+  else mainWindow?.webContents.send('relicDBFetch', data)
+})
+
 //autoUpdater.on('checking-for-update', () => displayAlert('update', 'Checking for update.'))
 //autoUpdater.on('update-available', () => displayAlert('update','Update available.'));
 //autoUpdater.on('update-not-available', () => displayAlert('update','Update not available.'));
@@ -149,5 +164,6 @@ mainEvent.on('error', (err) => {
 //autoUpdater.on('download-progress', (progressObj) => displayAlert('update error','Downloaded: ' + progressObj.percent));
 
 function displayAlert(title:string, text:string) {
-  dialog.showMessageBox((mainWindow as BrowserWindow), { title: title, message: text})
+  if (!mainWindow) setTimeout(displayAlert, 1000, title, text)
+  else dialog.showMessageBox((mainWindow as BrowserWindow), { title: title, message: text})
 }

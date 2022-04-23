@@ -15,7 +15,6 @@ const appFolder = Os.homedir() + '/Documents/WFRIM/'
 database_connection().then(res => pool=(res as PoolClient)).catch(err => emitError('Database connection failure', err))
 
 setInterval(pushRelicDB, 180000);
-setTimeout(getItemsList, 1000)
 setImmediate(pushRelicDB)
 
 function pushRelicDB() {
@@ -35,9 +34,14 @@ function pushRelicDB() {
         console.log('config var not set')
         return;
     }
+    if (!pool) {
+        setTimeout(pushRelicDB, 1000);
+        return
+    }
     (pool as PoolClient).connect((err:any, client:PoolClient, release:any) => {
         if (err) {
-            emitError('Error database connection', err)
+            emitError('Error database connection', err.stack)
+            setTimeout(pushRelicDB, 1000);
             release()
             return;
         }
@@ -47,7 +51,7 @@ function pushRelicDB() {
                         END IF;
                     END $$;`, (err, res) => {
             if (err) {
-                emitError('DB Error', err)
+                emitError('DB Query Error', err.stack)
                 release()
                 return;
             }
@@ -61,7 +65,7 @@ function pushRelicDB() {
                 client.query(`UPDATE wfrim_db SET db='${data.replace(/^\uFEFF/, '')}' WHERE device_id='${(config as Iconfig).device_id}'`, (err,res) => {
                     release()
                     if (err) {
-                        emitError('Error database backup', err)
+                        emitError('DB Query Error', err.stack)
                         return;
                     }
                 })
@@ -70,30 +74,36 @@ function pushRelicDB() {
     })
 }
 
-function getItemsList() {
-    console.log('getItemsList')
+itemsListFetch()
+function itemsListFetch() {
+    console.log('itemsListFetch')
     if (!pool) {
-        setTimeout(getItemsList, 1000);
+        setTimeout(itemsListFetch, 1000);
         console.log('db not ready yet')
         return;
-    } 
+    }
+    if (!pool) {
+        setTimeout(itemsListFetch, 1000);
+        return
+    }
     (pool as PoolClient).connect((err:any, client:PoolClient, release:any) => {
         if (err) {
-            emitError('Error database connection', err)
+            emitError('Error database connection', err.stack)
+            setTimeout(itemsListFetch, 1000);
             release()
             return
         }
         client.query(`SELECT * from items_list`, (err, res) => {
             release()
             if (err) {
-                emitError('DB failed to retrieve items_list', err)
+                emitError('DB Query Error', err.stack)
                 return;
             }
             const filepath = appFolder + 'items_list.json'
             fs.writeFile( filepath, JSON.stringify(res.rows), (err) => {
                 if (err) emitError(`Error writing to file ${filepath}`,err)
             });
-            mainEvent.emit('fetchItemsList', res.rows)
+            mainEvent.emit('itemsListFetch', res.rows)
         })
     })
 }
