@@ -2,16 +2,50 @@ import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import React from 'react';
 import './App.css';
 import SwipeableViews from 'react-swipeable-views';
-import {Tabs, Tab, Box, Typography, useTheme, AppBar} from '@mui/material';
+import {Tabs, Tab, Box, Typography, useTheme, AppBar, ThemeProvider, createTheme} from '@mui/material';
 import {Inventory} from './components/inventory';
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+  components: {
+    MuiFormControlLabel: {
+        styleOverrides: {
+          label: {
+            color: "white"
+          }
+        }
+    },
+    MuiButton: {
+      styleOverrides: {
+        textPrimary: {
+          boxShadow: "none"
+        },
+        outlinedPrimary: {
+          boxShadow: "none"
+        }
+      }
+    },
+    MuiTypography: {
+      styleOverrides: {
+        body1: {
+          color: "white"
+        }
+      }
+    }
+  }
+});
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<FullWidthTabs />} />
-      </Routes>
-    </Router>
+    <ThemeProvider theme={darkTheme}>
+      <Router>
+        <Routes>
+          <Route path="/" element={<FullWidthTabs />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 
@@ -87,13 +121,13 @@ function FullWidthTabs() {
           <Inventory/>
         </TabPanel>
         <TabPanel value={value} index={1} dir={theme.direction}>
-          Hosting
+          <Typography variant="body1">Hosting</Typography>
         </TabPanel>
         <TabPanel value={value} index={2} dir={theme.direction}>
-          Statistics
+          <Typography variant="body1">Statistics</Typography>
         </TabPanel>
         <TabPanel value={value} index={3} dir={theme.direction}>
-          Settings
+          <Typography variant="body1">Settings</Typography>
         </TabPanel>
       </SwipeableViews>
     </Box>
