@@ -17,14 +17,13 @@ import {
     CardActionArea,
     Typography,
     Avatar,
-    Grid
+    Grid,
 } from '@mui/material';
 import {
     AddBox,
     Add,
     Remove,
-    Delete,
-    DriveEtaTwoTone
+    Delete
 } from '@mui/icons-material';
 import React from 'react';
 import {event} from '../eventHandler'
@@ -41,6 +40,7 @@ interface relicProps {
     opened: number,
     display: boolean
 }
+//var relicDB:Array<relicProps> = [{"name":"Axi A2","quantity":114},{"name":"Axi A5","quantity":8},{"name":"Axi A7","quantity":3},{"name":"Axi E1","quantity":40},{"name":"Axi G1","quantity":16},{"name":"Axi G8","quantity":0,"opened":0,"display":false},{"name":"Axi L1","quantity":1},{"name":"Axi L4","quantity":6},{"name":"Axi N1","quantity":18},{"name":"Axi N2","quantity":"17"},{"name":"Axi N3","quantity":18},{"name":"Axi N4","quantity":"15"},{"name":"Axi N5","quantity":0},{"name":"Axi N6","quantity":32},{"name":"Axi R1","quantity":"1"},{"name":"Axi S2","quantity":17},{"name":"Axi S3","quantity":532},{"name":"Axi S4","quantity":19},{"name":"Axi S5","quantity":3},{"name":"Axi S6","quantity":6},{"name":"Axi S7","quantity":63},{"name":"Axi T1","quantity":4},{"name":"Axi V1","quantity":4},{"name":"Axi V2","quantity":69},{"name":"Axi V8","quantity":680},{"name":"Axi V9","quantity":0},{"name":"Lith A1","quantity":128},{"name":"Lith B1","quantity":8},{"name":"Lith B4","quantity":280},{"name":"Lith C5","quantity":45},{"name":"Lith G1","quantity":5},{"name":"Lith G2","quantity":1},{"name":"Lith H1","quantity":22},{"name":"Lith M1","quantity":62},{"name":"Lith M2","quantity":50},{"name":"Lith N2","quantity":36},{"name":"Lith N3","quantity":7},{"name":"Lith O2","quantity":6},{"name":"Lith S3","quantity":2},{"name":"Lith S4","quantity":42},{"name":"Lith T3","quantity":6},{"name":"Lith T6","quantity":163},{"name":"Lith V1","quantity":304},{"name":"Lith V2","quantity":185},{"name":"Lith V6","quantity":1},{"name":"Lith V7","quantity":9},{"name":"Lith V8","quantity":9},{"name":"Meso B1","quantity":40},{"name":"Meso B3","quantity":22},{"name":"Meso C1","quantity":0},{"name":"Meso C3","quantity":13},{"name":"Meso E1","quantity":2},{"name":"Meso F1","quantity":2},{"name":"Meso F2","quantity":19},{"name":"Meso F3","quantity":"0"},{"name":"Meso M1","quantity":7},{"name":"Meso N2","quantity":93},{"name":"Meso N3","quantity":"0"},{"name":"Meso N4","quantity":5},{"name":"Meso N6","quantity":383},{"name":"Meso N8","quantity":"22"},{"name":"Meso O3","quantity":4},{"name":"Meso O4","quantity":14},{"name":"Meso S2","quantity":45},{"name":"Meso S3","quantity":5},{"name":"Meso S4","quantity":4},{"name":"Meso S5","quantity":85},{"name":"Meso S9","quantity":60},{"name":"Meso V1","quantity":90},{"name":"Meso V2","quantity":64},{"name":"Meso V6","quantity":9},{"name":"Neo A4","quantity":2},{"name":"Neo B3","quantity":0},{"name":"Neo D1","quantity":7},{"name":"Neo F1","quantity":4},{"name":"Neo K3","quantity":88},{"name":"Neo N11","quantity":10},{"name":"Neo N2","quantity":21,"display":false},{"name":"Neo N3","quantity":20,"display":false},{"name":"Neo N5","quantity":10},{"name":"Neo N6","quantity":11},{"name":"Neo N7","quantity":19},{"name":"Neo N9","quantity":19},{"name":"Neo O1","quantity":37},{"name":"Neo R1","quantity":308},{"name":"Neo S1","quantity":8},{"name":"Neo S10","quantity":18},{"name":"Neo S13","quantity":23},{"name":"Neo S2","quantity":13},{"name":"Neo S5","quantity":29},{"name":"Neo V1","quantity":5},{"name":"Neo V2","quantity":15},{"name":"Neo V3","quantity":139},{"name":"Neo V4","quantity":48},{"name":"Neo V5","quantity":163},{"name":"Neo V8","quantity":2},{"name":"Neo Z8","quantity":121}]
 var relicDB:Array<relicProps> = []
 var items_list:Array<object> = []
 
@@ -51,49 +51,52 @@ interface IshowTiers {
     axi: boolean,
 }
 
-var showTiers:IshowTiers = {lith:true,meso:false,neo:true,axi:false}
+var showTiers:IshowTiers = {lith:true,meso:true,neo:true,axi:true}
 
-event.on('relicDBFetch', function relicDBFetch (data) {
-    relicDB = data
-    //console.log(JSON.stringify(relicDB))
-    if (!inventory) setTimeout(relicDBFetch, 1000);
-    else inventory.forceUpdate()
-})
 event.on('itemsListFetch', (data) => {
     items_list = data
-    //inventory.forceUpdate()
 })
 
 event.on('error', (data) => {
 })
 
-export default function() {
-    return inventory
-}
+export {Inventory}
 
 interface IInventoryState {
-    updateCards: boolean
+    updateCards: boolean,
+    searchText: string
 }
 
+interface IInventoryProps {
+}
 
-class Inventory extends React.Component<any,IInventoryState> {
+class Inventory extends React.Component<IInventoryProps,IInventoryState> {
     constructor(props:any) {
       super(props);
       this.state = {
-        updateCards: false
+        updateCards: false,
+        searchText: ''
       };
     }
-
-    childCallback = (option:string) => {
-        if (option=="updateCards") {
-            //console.log(JSON.stringify(relicDB))
+    
+    componentDidMount() {
+        event.on('relicDBFetch', (data) => {
+            relicDB = data
             this.setState({updateCards: true});
-        }
+            //console.log(JSON.stringify(relicDB))
+            //if (!inventory) setTimeout(relicDBFetch, 1000);
+            //else 
+        });
     }
 
+
+    childCallback = (option:string, arg:any) => {
+        if (option=="updateCards") this.setState({updateCards: true});
+        if (option=="searchRelic") this.setState({searchText: arg});
+    }
     render() {
         return (
-            <Box sx={{height:"90vh"}}>
+            <Box height="90vh">
                 <Grid container spacing={4}>
                     <Grid item xs={12}>
                         <AddRelic childCallback={this.childCallback}/>
@@ -106,9 +109,10 @@ class Inventory extends React.Component<any,IInventoryState> {
                                 const arr = relic.name.split(' ')
                                 if (showTiers[arr[0].toLowerCase() as keyof IshowTiers]) {
                                     if (relic.display || !relic.hasOwnProperty("display"))
-                                        return <Grid item xs={6} sm={4} md={2} lg={1.5}>
-                                            <Card variant="outlined"><RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} childCallback={this.childCallback}/></Card>
-                                        </Grid>
+                                        if (this.state.searchText == '' || this.state.searchText == relic.name)
+                                            return <Grid item xs={6} sm={4} md={2} lg={1.5}>
+                                                        <Card variant="outlined" id={`card${relic.name.replace(/ /g,'_')}`}><RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} childCallback={this.childCallback}/></Card>
+                                                    </Grid>
                                 }
                             })}
                         </Grid>
@@ -118,8 +122,6 @@ class Inventory extends React.Component<any,IInventoryState> {
         )
     }
 }
-
-const inventory = new Inventory('new')
 
 interface IRelicCardProps {
     name: string,
@@ -166,7 +168,7 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
                 relicDB[i].display = false
         })
         event.emit('postRelicDB', relicDB)
-        this.props.childCallback('updateCards')
+        this.props.childCallback('updateCards',null)
     }
     render() {
         return (<React.Fragment>
@@ -199,12 +201,12 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
                             </Grid>
                             <ButtonGroup disableElevation variant="contained">
                                 <Repeatable onHold={this.handleRelicAddOne}>
-                                    <IconButton aria-label="plusone" color="success" onClick={this.handleRelicAddOne}><Add /></IconButton>
+                                    <IconButton aria-label="plusone" color="success" onClick={this.handleRelicAddOne} style={{boxShadow:"none"}}><Add /></IconButton>
                                 </Repeatable>
                                 <Repeatable onHold={this.handleRelicRemoveOne}>
-                                    <IconButton aria-label="minusone" color="secondary" onClick={this.handleRelicRemoveOne}><Remove /></IconButton>
+                                    <IconButton aria-label="minusone" color="secondary" onClick={this.handleRelicRemoveOne} style={{boxShadow:"none"}}><Remove /></IconButton>
                                 </Repeatable>
-                                <IconButton aria-label="delete" color="error" onClick={this.handleRelicDelete}><Delete /></IconButton>
+                                <IconButton aria-label="delete" color="error" onClick={this.handleRelicDelete} style={{boxShadow:"none"}}><Delete /></IconButton>
                             </ButtonGroup>
                         </Grid>
                     </Typography>
@@ -220,6 +222,7 @@ interface IAddRelicProps {
 interface IAddRelicState {
     open: boolean,
     input: string,
+    searchText: string,
     dialogMsg: string,
     childCallback: Function
 }
@@ -231,6 +234,7 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
         this.state = {
           open: false,
           input: '',
+          searchText: '',
           dialogMsg: '',
           childCallback: this.props.childCallback,
         };
@@ -240,9 +244,24 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
         this.setState({input: event.target.value});
     }
 
-    handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter')
-            this.handleAdd()
+    handleChangeSearchRelic = (event: React.ChangeEvent<HTMLInputElement>) => {
+        console.log(event.target.value)
+        if (event.target.value == '' || event.target.value == this.state.searchText) this.setState({searchText: ''}, () => this.handleSearchRelic())
+        else this.setState({searchText: event.target.value});
+    }
+
+    handleDialogKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') this.handleAdd()
+    }
+
+    handleSearchRelicKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') this.handleSearchRelic()
+    }
+
+    handleSearchRelic = () => {
+        var str = this.state.searchText.replace('relic','').toLowerCase();
+        console.log(str)
+        this.props.childCallback('searchRelic', convertUpper(str))
     }
 
     handleOpen = () => {
@@ -261,15 +280,12 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
                 if (relic.name.toLowerCase() == str && relic.display == false) {
                     relicDB[i].display = true
                     exists = 2
-                } else if (relic.name.toLowerCase() == str)
-                    exists = 1
+                } else if (relic.name.toLowerCase() == str) exists = 1
             })
-            if (exists == 1) {
-                this.setState({dialogMsg: 'Already exists: ' + convertUpper(str) + ' Relic',input: ''});
-            } 
+            if (exists == 1) this.setState({dialogMsg: 'Already exists: ' + convertUpper(str) + ' Relic',input: ''});
             else if (exists == 2) {
                 this.setState({dialogMsg: 'Re-activated: ' + convertUpper(str) + ' Relic',input: ''});
-                this.props.childCallback('updateCards')
+                this.props.childCallback('updateCards',null)
                 event.emit('postRelicDB', relicDB)
             } else if (exists == 0) {
                 relicDB.push({
@@ -280,12 +296,10 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
                 })
                 relicDB = relicDB.sort(dynamicSort("name"))
                 this.setState({dialogMsg: 'Added: ' + convertUpper(str) + ' Relic',input: ''});
-                this.props.childCallback('updateCards')
+                this.props.childCallback('updateCards', null)
                 event.emit('postRelicDB', relicDB)
             }
-        } else {
-            this.setState({dialogMsg: 'Invalid relic: ' + convertUpper(str),input: ''});
-        }
+        } else this.setState({dialogMsg: 'Invalid relic: ' + convertUpper(str),input: ''});
     };
 
     alertValue = () => {
@@ -303,19 +317,19 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
         console.log(event.target.id + ": " + event.target.checked)
         showTiers[event.target.id as keyof IshowTiers] = event.target.checked
         //console.log(JSON.stringify(showTiers))
-        this.props.childCallback('updateCards')
+        this.props.childCallback('updateCards',null)
     }
 
     render() {
         const alert = this.alertValue()
         return (<React.Fragment>
-            
             <Grid container spacing={2} justifyContent="center" alignItems="center">
                 <Grid item xs={6}>
                     <Button variant="outlined" onClick={this.handleOpen} startIcon={<AddBox />}>Add Relic</Button>
                 </Grid>
                 <Grid item xs={6}>
-                    <div>
+                    <div style={{display: 'flex', justifyContent:'flex-end'}}>
+                        <TextField variant="standard" id="standard-helperText" label="Search relic" style={{marginRight: "30px",marginBottom:"25px"}} onChange={this.handleChangeSearchRelic} onKeyUp={this.handleSearchRelicKeyUp}/>
                         <FormControlLabel control={<Checkbox defaultChecked={showTiers.lith ? true:false} onChange={this.handleCheckboxChange} id="lith"/>} label="Lith" />
                         <FormControlLabel control={<Checkbox  defaultChecked={showTiers.meso ? true:false} onChange={this.handleCheckboxChange} id="meso"/>} label="Meso" />
                         <FormControlLabel control={<Checkbox defaultChecked={showTiers.neo ? true:false} onChange={this.handleCheckboxChange} id="neo"/>} label="Neo" />
@@ -335,7 +349,7 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
                         fullWidth
                         variant="standard"
                         onChange={this.handleChange}
-                        onKeyUp={this.handleKeyDown}
+                        onKeyUp={this.handleDialogKeyUp}
                         value={this.state.input}
                     />
                 </DialogContent>

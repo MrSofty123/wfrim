@@ -62,7 +62,7 @@ function pushRelicDB() {
                     release()
                     return;
                 }
-                client.query(`UPDATE wfrim_db SET db='${data.replace(/^\uFEFF/, '')}' WHERE device_id='${(config as Iconfig).device_id}'`, (err,res) => {
+                client.query(`UPDATE wfrim_db SET relic_db='${data.replace(/^\uFEFF/, '')}', relic_db_timestamp=${new Date().getTime()} WHERE device_id='${(config as Iconfig).device_id}'`, (err,res) => {
                     release()
                     if (err) {
                         emitError('DB Query Error', err.stack)
