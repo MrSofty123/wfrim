@@ -18,6 +18,7 @@ import {
     Typography,
     Avatar,
     Grid,
+    Tooltip
 } from '@mui/material';
 import {
     AddBox,
@@ -42,7 +43,22 @@ interface relicProps {
 }
 //var relicDB:Array<relicProps> = [{"name":"Axi A2","quantity":114},{"name":"Axi A5","quantity":8},{"name":"Axi A7","quantity":3},{"name":"Axi E1","quantity":40},{"name":"Axi G1","quantity":16},{"name":"Axi G8","quantity":0,"opened":0,"display":false},{"name":"Axi L1","quantity":1},{"name":"Axi L4","quantity":6},{"name":"Axi N1","quantity":18},{"name":"Axi N2","quantity":"17"},{"name":"Axi N3","quantity":18},{"name":"Axi N4","quantity":"15"},{"name":"Axi N5","quantity":0},{"name":"Axi N6","quantity":32},{"name":"Axi R1","quantity":"1"},{"name":"Axi S2","quantity":17},{"name":"Axi S3","quantity":532},{"name":"Axi S4","quantity":19},{"name":"Axi S5","quantity":3},{"name":"Axi S6","quantity":6},{"name":"Axi S7","quantity":63},{"name":"Axi T1","quantity":4},{"name":"Axi V1","quantity":4},{"name":"Axi V2","quantity":69},{"name":"Axi V8","quantity":680},{"name":"Axi V9","quantity":0},{"name":"Lith A1","quantity":128},{"name":"Lith B1","quantity":8},{"name":"Lith B4","quantity":280},{"name":"Lith C5","quantity":45},{"name":"Lith G1","quantity":5},{"name":"Lith G2","quantity":1},{"name":"Lith H1","quantity":22},{"name":"Lith M1","quantity":62},{"name":"Lith M2","quantity":50},{"name":"Lith N2","quantity":36},{"name":"Lith N3","quantity":7},{"name":"Lith O2","quantity":6},{"name":"Lith S3","quantity":2},{"name":"Lith S4","quantity":42},{"name":"Lith T3","quantity":6},{"name":"Lith T6","quantity":163},{"name":"Lith V1","quantity":304},{"name":"Lith V2","quantity":185},{"name":"Lith V6","quantity":1},{"name":"Lith V7","quantity":9},{"name":"Lith V8","quantity":9},{"name":"Meso B1","quantity":40},{"name":"Meso B3","quantity":22},{"name":"Meso C1","quantity":0},{"name":"Meso C3","quantity":13},{"name":"Meso E1","quantity":2},{"name":"Meso F1","quantity":2},{"name":"Meso F2","quantity":19},{"name":"Meso F3","quantity":"0"},{"name":"Meso M1","quantity":7},{"name":"Meso N2","quantity":93},{"name":"Meso N3","quantity":"0"},{"name":"Meso N4","quantity":5},{"name":"Meso N6","quantity":383},{"name":"Meso N8","quantity":"22"},{"name":"Meso O3","quantity":4},{"name":"Meso O4","quantity":14},{"name":"Meso S2","quantity":45},{"name":"Meso S3","quantity":5},{"name":"Meso S4","quantity":4},{"name":"Meso S5","quantity":85},{"name":"Meso S9","quantity":60},{"name":"Meso V1","quantity":90},{"name":"Meso V2","quantity":64},{"name":"Meso V6","quantity":9},{"name":"Neo A4","quantity":2},{"name":"Neo B3","quantity":0},{"name":"Neo D1","quantity":7},{"name":"Neo F1","quantity":4},{"name":"Neo K3","quantity":88},{"name":"Neo N11","quantity":10},{"name":"Neo N2","quantity":21,"display":false},{"name":"Neo N3","quantity":20,"display":false},{"name":"Neo N5","quantity":10},{"name":"Neo N6","quantity":11},{"name":"Neo N7","quantity":19},{"name":"Neo N9","quantity":19},{"name":"Neo O1","quantity":37},{"name":"Neo R1","quantity":308},{"name":"Neo S1","quantity":8},{"name":"Neo S10","quantity":18},{"name":"Neo S13","quantity":23},{"name":"Neo S2","quantity":13},{"name":"Neo S5","quantity":29},{"name":"Neo V1","quantity":5},{"name":"Neo V2","quantity":15},{"name":"Neo V3","quantity":139},{"name":"Neo V4","quantity":48},{"name":"Neo V5","quantity":163},{"name":"Neo V8","quantity":2},{"name":"Neo Z8","quantity":121}]
 var relicDB:Array<relicProps> = []
-var items_list:Array<object> = []
+interface Iitems_list {
+    [key: string]: {
+        item_url: string,
+        sell_price: string,
+        rewards: {
+            common: Array<string>,
+            uncommon: Array<string>,
+            rare: Array<string>,
+        },
+        relics: object[],
+        tags: object[],
+    }
+}
+var items_list:Iitems_list = {
+}
+var relics_list:Array<object> = []
 
 interface IshowTiers {
     lith: boolean,
@@ -54,7 +70,17 @@ interface IshowTiers {
 var showTiers:IshowTiers = {lith:true,meso:true,neo:true,axi:true}
 
 event.on('itemsListFetch', (data) => {
+    // convert into keys for faster access
+    data.forEach((item:any) => {
+        items_list[item.item_url as keyof Iitems_list] = item
+    })
+    //console.log(JSON.stringify(items_list))
+    return
     items_list = data
+    items_list.forEach(item => {
+        if (item.tags.includes('relic'))
+            relics_list.push(item)
+    })
 })
 
 event.on('error', (data) => {
@@ -170,9 +196,67 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
         event.emit('postRelicDB', relicDB)
         this.props.childCallback('updateCards',null)
     }
+    componentDidMount() {
+        event.on('itemsListFetch', (data) => {
+            this.props.childCallback('updateCards',null)
+        })
+    }
+
+    getTooltipTitle = () => {
+        interface Idrops {
+            text: string,
+            rarity: string,
+            rarity_index: number
+        }
+        const colors = {
+            rare: 'gold',
+            uncommon: 'silver',
+            common: '#E59866',
+            error: '#D7193F'
+        }
+        function rarityIndex (rarity:string) {
+            return rarity == 'common' ? 1 : (rarity == 'uncommon' ? 2 : 3)
+        }
+        const drops:Array<Idrops> = []
+        const relic_str = this.state.name.toLowerCase().replace(/ /g,'_') + '_relic'
+        if (items_list[relic_str as keyof Iitems_list]) {
+            try {
+                for (const [key, value] of Object.entries(items_list[relic_str as keyof Iitems_list].rewards)) {
+                    if (key == 'common' && value.length == 2)
+                        drops.push({text: 'forma_blueprint', rarity: key, rarity_index: rarityIndex(key)})
+                    if (key == 'uncommon' && value.length == 1)
+                        drops.push({text: 'forma_blueprint', rarity: key, rarity_index: rarityIndex(key)})
+                    value.map(drop => {
+                        drops.push({text: drop, rarity: key, rarity_index: rarityIndex(key)})
+                    })
+                }
+                drops.sort(dynamicSort('text'))
+                drops.sort(dynamicSort('rarity_index'))
+                drops.forEach((drop,i) => {
+                    if (drop.text != 'forma_blueprint')
+                        drops[i].text += ` (${items_list[drop.text as keyof Iitems_list].sell_price}p)`
+                    drops[i].text = convertUpper(drops[i].text)
+                })
+                //console.log(JSON.stringify(drops))
+            } catch (e) {
+                console.log(e + '\n' + JSON.stringify(items_list[relic_str as keyof Iitems_list]))
+                drops.push({text: 'Error loading drops', rarity: 'error', rarity_index: 1})
+            }
+        }
+        return (
+            <React.Fragment>
+            <Typography color="inherit">
+                <div style={{whiteSpace: 'pre-line'}}>
+                    {drops.length > 0 ? drops.map(drop => {return <p style={{color: colors[drop.rarity as keyof typeof colors]}}>{drop.text}</p>}):'Loading drops...'}
+                </div>
+            </Typography>
+          </React.Fragment>
+        )
+    }
     render() {
         return (<React.Fragment>
             <CardActionArea>
+                <Tooltip enterNextDelay={500} title={<this.getTooltipTitle />}>
                 <CardContent>
                     <Grid container spacing={2} justifyContent="center" alignItems="center">
                         <Grid item xs={3}>
@@ -211,6 +295,7 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
                         </Grid>
                     </Typography>
                 </CardContent>
+                </Tooltip>
             </CardActionArea>
         </React.Fragment>)
     }
