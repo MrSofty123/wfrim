@@ -58,7 +58,6 @@ interface Iitems_list {
 }
 var items_list:Iitems_list = {
 }
-var relics_list:Array<object> = []
 
 interface IshowTiers {
     lith: boolean,
@@ -73,13 +72,6 @@ event.on('itemsListFetch', (data) => {
     // convert into keys for faster access
     data.forEach((item:any) => {
         items_list[item.item_url as keyof Iitems_list] = item
-    })
-    //console.log(JSON.stringify(items_list))
-    return
-    items_list = data
-    items_list.forEach(item => {
-        if (item.tags.includes('relic'))
-            relics_list.push(item)
     })
 })
 
@@ -359,7 +351,13 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
 
     handleAdd = () => {
         const str = this.state.input.toLowerCase().replace('relic','')
-        if (str.match('lith') || str.match('meso') || str.match('neo') || str.match('axi') || str.match('requiem')) {
+        const str2 = this.state.input.toLowerCase().replace('relic','').replace(/ /g, '_') + '_relic'
+        if (Object.keys(items_list).length == 0) {
+            this.setState({dialogMsg: 'Please wait, loading relics list...'});
+            setTimeout(this.handleAdd, 1000)
+            return;
+        }
+        if (items_list[str2 as keyof Iitems_list]) {
             var exists = 0
             relicDB.map((relic,i) => {
                 if (relic.name.toLowerCase() == str && relic.display == false) {
@@ -384,15 +382,15 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
                 this.props.childCallback('updateCards', null)
                 event.emit('postRelicDB', relicDB)
             }
-        } else this.setState({dialogMsg: 'Invalid relic: ' + convertUpper(str),input: ''});
+        } else this.setState({dialogMsg: 'Could not find: ' + convertUpper(str2),input: ''});
     };
 
     alertValue = () => {
         if (this.state.dialogMsg.toLowerCase().match('added:') || this.state.dialogMsg.toLowerCase().match('re-activated:'))
             return (<Alert variant="outlined" severity="success">{this.state.dialogMsg}</Alert>)
-        else if (this.state.dialogMsg.toLowerCase().match('invalid relic:'))
+        else if (this.state.dialogMsg.toLowerCase().match('could not find'))
             return (<Alert variant="outlined" severity="error">{this.state.dialogMsg}</Alert>)
-        else if (this.state.dialogMsg.toLowerCase().match('already exists:'))
+        else if (this.state.dialogMsg.toLowerCase().match('already exists:') || this.state.dialogMsg.toLowerCase().match('please wait'))
             return (<Alert variant="outlined" severity="info">{this.state.dialogMsg}</Alert>)
         else
             return ''
