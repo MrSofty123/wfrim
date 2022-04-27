@@ -2,12 +2,14 @@ import { PoolClient } from 'pg';
 import database_connection from './database_connection'
 import {mainEvent} from '../eventHandler'
 import fs from 'fs';
-import Os from 'os'
-
+import Os from 'os';
+import {config} from './config'
+/*
 interface Iconfig {
     device_id: string
 }
 var config: Iconfig | null = null
+*/
 let pool: PoolClient | null = null;
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
 
@@ -24,6 +26,7 @@ function pushRelicDB() {
         console.log('db not ready yet')
         return;
     } 
+    /*
     const filepath = appFolder + 'config.json'
     fs.readFile(filepath,'utf8',(err,data) => {
         if (err) emitError(`Error reading file ${filepath}`,err)
@@ -34,43 +37,44 @@ function pushRelicDB() {
         console.log('config var not set')
         return;
     }
+    */
     if (!pool) {
         setTimeout(pushRelicDB, 1000);
         return
     }
-    (pool as PoolClient).connect((err:any, client:PoolClient, release:any) => {
+    (pool as PoolClient).connect((err: any, client:PoolClient, release:any) => {
         if (err) {
             emitError('Error database connection', err.stack)
             setTimeout(pushRelicDB, 1000);
             release()
-            return;
-        }
-        client.query(`DO $$ BEGIN
-                        IF NOT EXISTS (SELECT * FROM wfrim_db WHERE device_id = '${(config as Iconfig).device_id}') THEN
-                            INSERT INTO wfrim_db (device_id) VALUES ('${(config as Iconfig).device_id}');
-                        END IF;
-                    END $$;`, (err, res) => {
-            if (err) {
-                emitError('DB Query Error', err.stack)
-                release()
-                return;
-            }
-            const filepath = appFolder + 'relicsDB.json'
-            fs.readFile(filepath,'utf8',(err,data) => {
+        } else {
+            client.query(`DO $$ BEGIN
+                            IF NOT EXISTS (SELECT * FROM wfrim_db WHERE device_id = '${(config as any).device_id}') THEN
+                                INSERT INTO wfrim_db (device_id) VALUES ('${(config as any).device_id}');
+                            END IF;
+                        END $$;`, (err, res) => {
                 if (err) {
-                    emitError(`Error reading file ${filepath}`,err)
+                    emitError('DB Query Error', err.stack)
                     release()
-                    return;
+                    return release();
                 }
-                client.query(`UPDATE wfrim_db SET relic_db='${data.replace(/^\uFEFF/, '')}', relic_db_timestamp=${new Date().getTime()} WHERE device_id='${(config as Iconfig).device_id}'`, (err,res) => {
-                    release()
+                const filepath = appFolder + 'relicsDB.json'
+                fs.readFile(filepath,'utf8',(err,data) => {
                     if (err) {
-                        emitError('DB Query Error', err.stack)
-                        return;
+                        emitError(`Error reading file ${filepath}`,err)
+                        release()
+                        return release();
                     }
+                    client.query(`UPDATE wfrim_db SET relic_db='${data.replace(/^\uFEFF/, '')}', relic_db_timestamp=${new Date().getTime()} WHERE device_id='${(config as Iconfig).device_id}'`, (err,res) => {
+                        release()
+                        if (err) {
+                            emitError('DB Query Error', err.stack)
+                            return release();
+                        }
+                    })
                 })
             })
-        })
+        }
     })
 }
 

@@ -12,13 +12,13 @@ window.electron.ipcRenderer.on('relicDBFetch', (data) => {
     event.emit('relicDBFetch', data)
 });
 
-event.on('postRelicDB', (arg) => {
-    window.electron.ipcRenderer.sendMain('postRelicDB', arg);
-})
-
 window.electron.ipcRenderer.on('itemsListFetch', (arg) => {
     //console.log(JSON.stringify(arg))
     event.emit('itemsListFetch', arg)
+});
+window.electron.ipcRenderer.on('configFetch', (arg) => {
+    //console.log(JSON.stringify(arg))
+    event.emit('configFetch', arg)
 });
 
 window.electron.ipcRenderer.once('error', (arg) => {
@@ -26,3 +26,10 @@ window.electron.ipcRenderer.once('error', (arg) => {
     if (arg.data)
         event.emit('error', JSON.parse(arg.data))
 });
+
+event.on('postRelicDB', (data) => {
+    window.electron.ipcRenderer.sendMain('postRelicDB', data);
+})
+event.on('postConfig', (data) => {
+    window.electron.ipcRenderer.sendMain('postConfig', data);
+})

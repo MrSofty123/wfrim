@@ -155,6 +155,10 @@ mainEvent.on('relicDBFetch', function relicDBFetch(data) {
   if (!rendererReady || !mainWindow) setTimeout(relicDBFetch, 1000, data)
   else mainWindow?.webContents.send('relicDBFetch', data)
 })
+mainEvent.on('configFetch', function configFetch(data) {
+  if (!rendererReady || !mainWindow) setTimeout(configFetch, 1000, data)
+  else mainWindow?.webContents.send('configFetch', data)
+})
 
 //autoUpdater.on('checking-for-update', () => displayAlert('update', 'Checking for update.'))
 //autoUpdater.on('update-available', () => displayAlert('update','Update available.'));

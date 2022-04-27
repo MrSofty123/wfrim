@@ -4,7 +4,6 @@ import path from 'path';
 import fs from 'fs';
 import Os from 'os'
 import { mainEvent } from './eventHandler';
-import { randomUUID } from 'crypto';
 import './modules/db_module'
 
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
@@ -36,19 +35,6 @@ function preprocessor() {
                     mainEvent.emit('relicDBFetch', data)
                 }
             })
-        }
-    });
-    // config.json
-    var filepath = appFolder + 'config.json'
-    fs.open(filepath,'r',function(notexists, f) {
-        if (notexists) {
-            var config = {device_id: randomUUID()}
-            var filepath = appFolder + 'config.json'
-            fs.writeFile( filepath, JSON.stringify(config), (err) => {
-                if (err) emitError(`Error creating directory ${filepath}`,err)
-            });
-        } else {
-            //any new changes
         }
     });
     // items_list.json
