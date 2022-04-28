@@ -42,8 +42,8 @@ interface relicProps {
     opened: number,
     display: boolean
 }
-var relicDB:Array<relicProps> = [{"name":"Axi A2","quantity":114},{"name":"Axi A5","quantity":8},{"name":"Axi A7","quantity":3},{"name":"Axi E1","quantity":40},{"name":"Axi G1","quantity":16},{"name":"Axi G8","quantity":0,"opened":0,"display":false},{"name":"Axi L1","quantity":1},{"name":"Axi L4","quantity":6},{"name":"Axi N1","quantity":18},{"name":"Axi N2","quantity":"17"},{"name":"Axi N3","quantity":18},{"name":"Axi N4","quantity":"15"},{"name":"Axi N5","quantity":0},{"name":"Axi N6","quantity":32},{"name":"Axi R1","quantity":"1"},{"name":"Axi S2","quantity":17},{"name":"Axi S3","quantity":532},{"name":"Axi S4","quantity":19},{"name":"Axi S5","quantity":3},{"name":"Axi S6","quantity":6},{"name":"Axi S7","quantity":63},{"name":"Axi T1","quantity":4},{"name":"Axi V1","quantity":4},{"name":"Axi V2","quantity":69},{"name":"Axi V8","quantity":680},{"name":"Axi V9","quantity":0},{"name":"Lith A1","quantity":128},{"name":"Lith B1","quantity":8},{"name":"Lith B4","quantity":280},{"name":"Lith C5","quantity":45},{"name":"Lith G1","quantity":5},{"name":"Lith G2","quantity":1},{"name":"Lith H1","quantity":22},{"name":"Lith M1","quantity":62},{"name":"Lith M2","quantity":50},{"name":"Lith N2","quantity":36},{"name":"Lith N3","quantity":7},{"name":"Lith O2","quantity":6},{"name":"Lith S3","quantity":2},{"name":"Lith S4","quantity":42},{"name":"Lith T3","quantity":6},{"name":"Lith T6","quantity":163},{"name":"Lith V1","quantity":304},{"name":"Lith V2","quantity":185},{"name":"Lith V6","quantity":1},{"name":"Lith V7","quantity":9},{"name":"Lith V8","quantity":9},{"name":"Meso B1","quantity":40},{"name":"Meso B3","quantity":22},{"name":"Meso C1","quantity":0},{"name":"Meso C3","quantity":13},{"name":"Meso E1","quantity":2},{"name":"Meso F1","quantity":2},{"name":"Meso F2","quantity":19},{"name":"Meso F3","quantity":"0"},{"name":"Meso M1","quantity":7},{"name":"Meso N2","quantity":93},{"name":"Meso N3","quantity":"0"},{"name":"Meso N4","quantity":5},{"name":"Meso N6","quantity":383},{"name":"Meso N8","quantity":"22"},{"name":"Meso O3","quantity":4},{"name":"Meso O4","quantity":14},{"name":"Meso S2","quantity":45},{"name":"Meso S3","quantity":5},{"name":"Meso S4","quantity":4},{"name":"Meso S5","quantity":85},{"name":"Meso S9","quantity":60},{"name":"Meso V1","quantity":90},{"name":"Meso V2","quantity":64},{"name":"Meso V6","quantity":9},{"name":"Neo A4","quantity":2},{"name":"Neo B3","quantity":0},{"name":"Neo D1","quantity":7},{"name":"Neo F1","quantity":4},{"name":"Neo K3","quantity":88},{"name":"Neo N11","quantity":10},{"name":"Neo N2","quantity":21,"display":false},{"name":"Neo N3","quantity":20,"display":false},{"name":"Neo N5","quantity":10},{"name":"Neo N6","quantity":11},{"name":"Neo N7","quantity":19},{"name":"Neo N9","quantity":19},{"name":"Neo O1","quantity":37},{"name":"Neo R1","quantity":308},{"name":"Neo S1","quantity":8},{"name":"Neo S10","quantity":18},{"name":"Neo S13","quantity":23},{"name":"Neo S2","quantity":13},{"name":"Neo S5","quantity":29},{"name":"Neo V1","quantity":5},{"name":"Neo V2","quantity":15},{"name":"Neo V3","quantity":139},{"name":"Neo V4","quantity":48},{"name":"Neo V5","quantity":163},{"name":"Neo V8","quantity":2},{"name":"Neo Z8","quantity":121}]
-//var relicDB:Array<relicProps> = []
+//var relicDB:Array<relicProps> = [{"name":"Axi A2","quantity":114},{"name":"Axi A5","quantity":8},{"name":"Axi A7","quantity":3},{"name":"Axi E1","quantity":40},{"name":"Axi G1","quantity":16},{"name":"Axi G8","quantity":0,"opened":0,"display":false},{"name":"Axi L1","quantity":1},{"name":"Axi L4","quantity":6},{"name":"Axi N1","quantity":18},{"name":"Axi N2","quantity":"17"},{"name":"Axi N3","quantity":18},{"name":"Axi N4","quantity":"15"},{"name":"Axi N5","quantity":0},{"name":"Axi N6","quantity":32},{"name":"Axi R1","quantity":"1"},{"name":"Axi S2","quantity":17},{"name":"Axi S3","quantity":532},{"name":"Axi S4","quantity":19},{"name":"Axi S5","quantity":3},{"name":"Axi S6","quantity":6},{"name":"Axi S7","quantity":63},{"name":"Axi T1","quantity":4},{"name":"Axi V1","quantity":4},{"name":"Axi V2","quantity":69},{"name":"Axi V8","quantity":680},{"name":"Axi V9","quantity":0},{"name":"Lith A1","quantity":128},{"name":"Lith B1","quantity":8},{"name":"Lith B4","quantity":280},{"name":"Lith C5","quantity":45},{"name":"Lith G1","quantity":5},{"name":"Lith G2","quantity":1},{"name":"Lith H1","quantity":22},{"name":"Lith M1","quantity":62},{"name":"Lith M2","quantity":50},{"name":"Lith N2","quantity":36},{"name":"Lith N3","quantity":7},{"name":"Lith O2","quantity":6},{"name":"Lith S3","quantity":2},{"name":"Lith S4","quantity":42},{"name":"Lith T3","quantity":6},{"name":"Lith T6","quantity":163},{"name":"Lith V1","quantity":304},{"name":"Lith V2","quantity":185},{"name":"Lith V6","quantity":1},{"name":"Lith V7","quantity":9},{"name":"Lith V8","quantity":9},{"name":"Meso B1","quantity":40},{"name":"Meso B3","quantity":22},{"name":"Meso C1","quantity":0},{"name":"Meso C3","quantity":13},{"name":"Meso E1","quantity":2},{"name":"Meso F1","quantity":2},{"name":"Meso F2","quantity":19},{"name":"Meso F3","quantity":"0"},{"name":"Meso M1","quantity":7},{"name":"Meso N2","quantity":93},{"name":"Meso N3","quantity":"0"},{"name":"Meso N4","quantity":5},{"name":"Meso N6","quantity":383},{"name":"Meso N8","quantity":"22"},{"name":"Meso O3","quantity":4},{"name":"Meso O4","quantity":14},{"name":"Meso S2","quantity":45},{"name":"Meso S3","quantity":5},{"name":"Meso S4","quantity":4},{"name":"Meso S5","quantity":85},{"name":"Meso S9","quantity":60},{"name":"Meso V1","quantity":90},{"name":"Meso V2","quantity":64},{"name":"Meso V6","quantity":9},{"name":"Neo A4","quantity":2},{"name":"Neo B3","quantity":0},{"name":"Neo D1","quantity":7},{"name":"Neo F1","quantity":4},{"name":"Neo K3","quantity":88},{"name":"Neo N11","quantity":10},{"name":"Neo N2","quantity":21,"display":false},{"name":"Neo N3","quantity":20,"display":false},{"name":"Neo N5","quantity":10},{"name":"Neo N6","quantity":11},{"name":"Neo N7","quantity":19},{"name":"Neo N9","quantity":19},{"name":"Neo O1","quantity":37},{"name":"Neo R1","quantity":308},{"name":"Neo S1","quantity":8},{"name":"Neo S10","quantity":18},{"name":"Neo S13","quantity":23},{"name":"Neo S2","quantity":13},{"name":"Neo S5","quantity":29},{"name":"Neo V1","quantity":5},{"name":"Neo V2","quantity":15},{"name":"Neo V3","quantity":139},{"name":"Neo V4","quantity":48},{"name":"Neo V5","quantity":163},{"name":"Neo V8","quantity":2},{"name":"Neo Z8","quantity":121}]
+var relicDB:Array<relicProps> = []
 interface Iitems_list {
     [key: string]: {
         item_url: string,
@@ -53,8 +53,8 @@ interface Iitems_list {
             uncommon: Array<string>,
             rare: Array<string>,
         },
-        relics: object[],
-        tags: object[],
+        relics: Array<{link: string, name: string}>,
+        tags: Array<string>,
     }
 }
 var items_list:Iitems_list = {
@@ -80,7 +80,7 @@ export {Inventory}
 
 interface IInventoryState {
     updateCards: boolean,
-    searchText: string
+    searchRelic: Array<string>
 }
 
 interface IInventoryProps {
@@ -91,7 +91,7 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
       super(props);
       this.state = {
         updateCards: false,
-        searchText: ''
+        searchRelic: []
       };
     }
     
@@ -114,7 +114,7 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
 
     childCallback = (option:string, arg:any) => {
         if (option=="updateCards") this.setState({updateCards: true});
-        if (option=="searchRelic") this.setState({searchText: arg});
+        if (option=="searchRelic") this.setState({searchRelic: arg});
     }
     render() {
         return (
@@ -132,7 +132,7 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
                                 const arr = relic.name.split(' ')
                                 if (showTiers[arr[0].toLowerCase() as keyof IshowTiers]) {
                                     if (relic.display || !relic.hasOwnProperty("display"))
-                                        if (this.state.searchText == '' || this.state.searchText == relic.name)
+                                        if (this.state.searchRelic.length == 0 || this.state.searchRelic.includes(relic.name))
                                             return <Grid item key={`card${relic.name.replace(/ /g,'_')}`}>
                                                         <RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} childCallback={this.childCallback}/>
                                                     </Grid>
@@ -307,7 +307,8 @@ interface IAddRelicState {
     childCallback: Function
 }
 
-
+var searchTimeout:ReturnType<typeof setTimeout>;
+const searchTimeoutms = 200
 class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
     constructor(props:any) {
         super(props);
@@ -325,9 +326,13 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
     }
 
     handleChangeSearchRelic = (event: React.ChangeEvent<HTMLInputElement>) => {
-        console.log(event.target.value)
+        //console.log(event.target.value)
         if (event.target.value == '' || event.target.value == this.state.searchText) this.setState({searchText: ''}, () => this.handleSearchRelic())
-        else this.setState({searchText: event.target.value});
+        else {
+            clearTimeout(searchTimeout)
+            searchTimeout = setTimeout(this.handleSearchRelic, searchTimeoutms);
+            this.setState({searchText: event.target.value});
+        }
     }
 
     handleDialogKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -335,13 +340,32 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
     }
 
     handleSearchRelicKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter') this.handleSearchRelic()
+        if (event.key === 'Enter') {
+            clearTimeout(searchTimeout)
+            this.handleSearchRelic()
+        }
     }
 
     handleSearchRelic = () => {
-        var str = this.state.searchText.replace('relic','').toLowerCase();
-        console.log(str)
-        this.props.childCallback('searchRelic', convertUpper(str))
+        console.log('searching: ' + this.state.searchText)
+        var str = this.state.searchText.trim().replace('relic','').replace(/ /g,'_').toLowerCase();
+        var relicsList:Array<string> = []
+        if (str != '') {
+            Object.keys(items_list).forEach(item => {
+                if (item.match('^' + str + '\W*')) {
+                    if (!items_list[item].tags.includes('relic')) {
+                        if(items_list[item].relics) {
+                            items_list[item].relics.forEach(relic => {
+                                relicsList.push(convertUpper(relic.link.replace('_relic','')))
+                            })
+                        }
+                    } else {
+                        relicsList.push(convertUpper(item.replace('_relic','')))
+                    }
+                }
+            })
+        }
+        this.props.childCallback('searchRelic', relicsList)
     }
 
     handleOpen = () => {

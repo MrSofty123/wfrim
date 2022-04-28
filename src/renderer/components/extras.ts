@@ -102,7 +102,7 @@ function getRandomColor() {
     return color;
 }
 
-export = {
+export {
     dynamicSort,
     dynamicSortDesc,
     msToTime,

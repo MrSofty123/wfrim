@@ -32,7 +32,6 @@ import {convertUpper,dynamicSort} from './extras'
 */
 
 import {config} from './config'
-import { Interface } from 'readline';
 import { Event } from 'electron';
 
 export {Settings}
