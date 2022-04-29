@@ -16,6 +16,7 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import './ipcHandler'
+import './modules/log_reader'
 import {mainEvent} from './eventHandler'
 
 export default class AppUpdater {

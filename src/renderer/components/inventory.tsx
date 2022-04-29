@@ -80,7 +80,8 @@ export {Inventory}
 
 interface IInventoryState {
     updateCards: boolean,
-    searchRelic: Array<string>
+    searchRelic: Array<string>,
+    relicDB: Array<relicProps>
 }
 
 interface IInventoryProps {
@@ -91,23 +92,26 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
       super(props);
       this.state = {
         updateCards: false,
-        searchRelic: []
+        searchRelic: [],
+        relicDB: relicDB
       };
     }
     
     componentDidMount() {
         event.on('relicDBFetch', (data) => {
-            relicDB = data
-            this.setState({updateCards: true});
+            console.log('renderer: relicDBFetch')
+            relicDB = []
+            relicDB = typeof data == 'object' ? data:JSON.parse(data as string)
+            this.setState({relicDB: []}, () => this.setState({relicDB: relicDB}));
             //console.log(JSON.stringify(relicDB))
             //if (!inventory) setTimeout(relicDBFetch, 1000);
             //else 
         });
         event.on('itemsListFetch', (data) => {
-            this.setState({updateCards: true});
+            this.setState({updateCards: !this.state.updateCards});
         })
         event.on('configFetchComplete', (data:any) => {
-            this.setState({updateCards: true});
+            this.setState({updateCards: !this.state.updateCards});
         })
     }
 
@@ -127,7 +131,7 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
                         <div>
                         <Grid container spacing={1}>
                             {this.state.updateCards}
-                            {relicDB.map((relic:any, i:number) => {
+                            {this.state.relicDB.map((relic:any, i:number) => {
                                 //console.log('Creating card ' + relic.name)
                                 const arr = relic.name.split(' ')
                                 if (showTiers[arr[0].toLowerCase() as keyof IshowTiers]) {
