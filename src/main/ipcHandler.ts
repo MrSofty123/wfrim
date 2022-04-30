@@ -27,7 +27,7 @@ function preprocessor() {
                 if (err) emitError(`Error reading file ${filepath}`,err)
                 else {
                     try {
-                        data = JSON.parse(data)
+                        data = JSON.parse(data.replace(/^\uFEFF/, ''))
                     } catch (err) {
                         emitError(`Error parsing data ${filepath}`,err)
                         return;

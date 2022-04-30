@@ -5,6 +5,7 @@ import SwipeableViews from 'react-swipeable-views';
 import {Tabs, Tab, Box, Typography, useTheme, AppBar, ThemeProvider, createTheme} from '@mui/material';
 import {Inventory} from './components/inventory';
 import {Settings} from './components/settings';
+import {Statistics} from './components/statistics';
 
 const darkTheme = createTheme({
   palette: {
@@ -125,7 +126,7 @@ function FullWidthTabs() {
           <Typography variant="body1">Hosting</Typography>
         </TabPanel>
         <TabPanel value={value} index={2} dir={theme.direction}>
-          <Typography variant="body1">Statistics</Typography>
+          <Statistics/>
         </TabPanel>
         <TabPanel value={value} index={3} dir={theme.direction}>
           <Settings/>

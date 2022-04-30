@@ -115,7 +115,6 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
         })
     }
 
-
     childCallback = (option:string, arg:any) => {
         if (option=="updateCards") this.setState({updateCards: true});
         if (option=="searchRelic") this.setState({searchRelic: arg});

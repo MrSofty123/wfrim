@@ -160,6 +160,11 @@ mainEvent.on('configFetch', function configFetch(data) {
   if (!rendererReady || !mainWindow) setTimeout(configFetch, 1000, data)
   else mainWindow?.webContents.send('configFetch', data)
 })
+mainEvent.on('statisticsFetch', function statisticsFetch(data) {
+  //console.log('************************************************************call statisticsFetch******************************************************************************')
+  if (!rendererReady || !mainWindow) setTimeout(statisticsFetch, 1000, data)
+  else mainWindow?.webContents.send('statisticsFetch', data)
+})
 
 //autoUpdater.on('checking-for-update', () => displayAlert('update', 'Checking for update.'))
 //autoUpdater.on('update-available', () => displayAlert('update','Update available.'));

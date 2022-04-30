@@ -20,6 +20,10 @@ window.electron.ipcRenderer.on('configFetch', (arg) => {
     //console.log(JSON.stringify(arg))
     event.emit('configFetch', arg)
 });
+window.electron.ipcRenderer.on('statisticsFetch', (arg) => {
+    //console.log(JSON.stringify(arg))
+    event.emit('statisticsFetch', arg)
+});
 
 window.electron.ipcRenderer.once('error', (arg) => {
     console.log('Render response: error')

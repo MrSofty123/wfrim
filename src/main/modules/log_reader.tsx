@@ -6,19 +6,34 @@ import path from 'path'
 
 const eeLogPath = Os.homedir() + '/AppData/Local/Warframe/EE.log'
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
-setInterval(logRead, 10000)
-var eeLogFileSize = 0 
+//setInterval(logRead, 10000)
+fs.watchFile(eeLogPath,(currStat,prevStat) => {
+    if (currStat.size != prevStat.size) {
+        console.log('file changed: ',eeLogPath)
+        logRead()
+    }
+})
+// watch logs files
+fs.readdir(appFolder + 'logs', (err,files) => {
+    if (err) emitError('Error getting files', err.stack)
+    else {
+        for (const filename of files) {
+            fs.watchFile(appFolder + 'logs' + filename,(currStat,prevStat) => {
+                if (currStat.size != prevStat.size) {
+                    console.log('file changed: ',eeLogPath)
+                    getStatistics()
+                }
+            })
+        }
+    }
+})
+getStatistics()
+var combineFiles = false
 
 function logRead () {
     // check filesize
-    fs.stat(eeLogPath, (err,stats) => {
-        if (err) emitError('Error database connection', err.stack)
-        else {
-            if (stats.size == eeLogFileSize) return
-            else eeLogFileSize = stats.size
-        }
-        fs.readFile(eeLogPath,'utf8',(err,data) => {
-            if (err) emitError('Error database connection', err.stack)
+        fs.readFile(eeLogPath,'utf-8',(err,data) => {
+            if (err) emitError('Error reading' + eeLogPath, err.stack)
             else {
                 var logPrefix = ''
                 const logArr = data.split('\r\n')
@@ -32,9 +47,10 @@ function logRead () {
                     }
                 }
                 if (logPrefix == '') return //current time not written yet
+                if (!combineFiles) combineFilesFunc(logPrefix)
                 getFile(appFolder + `logs/${logPrefix}_log.json`).then(data => {
                     //console.log(JSON.stringify(data))
-                    var logfile:any = typeof data == 'object' ? data:JSON.parse((data as string))
+                    var logfile:any = typeof data == 'object' ? data:JSON.parse((data as string).replace(/^\uFEFF/, ''))
                     for (const [index1,val] of logArr.entries()) {
                         var eventHandled:boolean = false
                         var tradeSuccess:boolean = false
@@ -85,9 +101,10 @@ function logRead () {
                                 if (item.match('and will receive from')) {
                                     receiveFlag = 1
                                     trader = (item.split(' '))[4]
+                                } else {
+                                    if (receiveFlag) receivingItems.push(item.replace(/ /g,'_'))
+                                    else offeringItems.push(item.replace(/ /g,'_'))
                                 }
-                                if (receiveFlag) receivingItems.push(item.replace(/ /g,'_'))
-                                else offeringItems.push(item.replace(/ /g,'_'))
                             })
                             //console.log(JSON.stringify(offeringItems))
                             //console.log(JSON.stringify(receivingItems))
@@ -176,6 +193,56 @@ function logRead () {
                 }).catch(err => emitError('Error getting log file', err))
             }
         })
+}
+
+function combineFilesFunc(logPrefix:string) {
+    fs.readdir(appFolder + 'logs', (err,files) => {
+        if (err) emitError('Error getting dir files', err.stack)
+        else {
+            console.log(JSON.stringify(files))
+            getFile(appFolder + `logs/full_log.json`).then(data => {
+                var full_log = typeof data == 'object' ? data:JSON.parse((data as string).replace(/^\uFEFF/, ''))
+                for (const [index,filename] of files.entries()) {
+                    if (filename.match(logPrefix) || filename == 'full_log.json' || filename.toLowerCase().match('gdpr_trades')) continue
+                    console.log('reading ' + filename)
+                    const fileContent = JSON.parse((fs.readFileSync(appFolder + 'logs/' + filename,'utf-8')).replace(/^\uFEFF/, ''))
+                    try {
+                        for (const [index,newMission] of fileContent.mission_initialize.entries()) {
+                            var logExists = false
+                            for (const [index,prevMission] of full_log.mission_initialize.entries()) {
+                                if (JSON.stringify(prevMission) == JSON.stringify(newMission)) {
+                                    logExists = true
+                                    break
+                                }
+                            }
+                            if (!logExists) full_log.mission_initialize.push(newMission)
+                        }
+                    } catch (e) {}
+                    try {
+                        for (const [index,newMission] of fileContent.trades.entries()) {
+                            var logExists = false
+                            for (const [index,prevMission] of full_log.trades.entries()) {
+                                if (JSON.stringify(prevMission) == JSON.stringify(newMission)) {
+                                    logExists = true
+                                    break
+                                }
+                            }
+                            if (!logExists) full_log.trades.push(newMission)
+                        }
+                    } catch (e) {}
+                }
+                fs.writeFile(appFolder + `logs/full_log.json`, JSON.stringify(full_log), (err) => {
+                    if (err) emitError('Error writing log file', err.stack)
+                    else {
+                        for (const [index,filename] of files.entries()) {
+                            if (filename.match(logPrefix) || filename == 'full_log.json' || filename.toLowerCase().match('gdpr_trades')) continue
+                            fs.unlinkSync(appFolder + 'logs/' + filename)
+                        }
+                        combineFiles = true
+                    }
+                });
+            }).catch(err => emitError('Error reading full_log',err.stack? err.stack:err))
+        }
     })
 }
 
@@ -184,7 +251,7 @@ function wfTradeHandler(offeringItems:Array<string>,receivingItems:Array<string>
     fs.readFile(appFolder + 'relicsDB.json','utf-8',(err,data) => {
         if (err) emitError('Error reading file', err.stack)
         else {
-            var relicDB:Array<any> = JSON.parse(data)
+            var relicDB:Array<any> = JSON.parse(data.replace(/^\uFEFF/, ''))
 
             offeringItems.forEach(item => {
                 const relicName = convertUpper(item.toLowerCase().replace('_relic_[radiant]','').replace('_relic_[exceptional]','').replace('_relic_[flawless]','').replace('_relic',''))
@@ -218,7 +285,7 @@ function wfMissionHandler(relicEquipped:string)
     fs.readFile(appFolder + 'relicsDB.json','utf-8',(err,data) => {
         if (err) emitError('Error reading file', err.stack)
         else {
-            var relicDB:Array<any> = JSON.parse(data)
+            var relicDB:Array<any> = JSON.parse(data.replace(/^\uFEFF/, ''))
             const relicName = convertUpper(relicEquipped.toLowerCase().replace('_relic',''))
             console.log(relicName)
             relicDB.map((relic,index) => {
@@ -231,6 +298,25 @@ function wfMissionHandler(relicEquipped:string)
                 if (err) emitError('Error writing log file', err.stack)
                 else mainEvent.emit('relicDBFetch', relicDB)
             });
+        }
+    })
+}
+
+
+function getStatistics() {
+    fs.readdir(appFolder + 'logs', (err,files) => {
+        if (err) emitError('Error getting files', err.stack)
+        else {
+            var rawStatistics = {mission_initialize: [], trades: []}
+            for (const filename of files) {
+                console.log(filename)
+                const fileContent = JSON.parse((fs.readFileSync(appFolder + 'logs/' + filename,'utf-8')).replace(/^\uFEFF/, ''))
+                try {
+                    fileContent.mission_initialize.forEach((mission:object) => (rawStatistics.mission_initialize as Array<object>).push(mission))
+                    fileContent.trades.forEach((trade:object) => (rawStatistics.trades as Array<object>).push(trade))
+                } catch (e) {}
+            }
+            mainEvent.emit('statisticsFetch', rawStatistics)
         }
     })
 }
@@ -250,9 +336,9 @@ async function getFile(filepath:string) {
                     else resolve(obj)
                 });
             } else {
-                fs.readFile(filepath,'utf8',(err,data) => {
+                fs.readFile(filepath,'utf-8',(err,data) => {
                     if (err) reject(err.stack)
-                    else resolve(JSON.parse(data))
+                    else resolve(JSON.parse(data.replace(/^\uFEFF/, '')))
                 })
             }
         });
