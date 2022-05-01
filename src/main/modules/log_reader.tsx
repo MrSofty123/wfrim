@@ -6,10 +6,11 @@ import path from 'path'
 
 const eeLogPath = Os.homedir() + '/AppData/Local/Warframe/EE.log'
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
-//setInterval(logRead, 10000)
+// watch ee.log
+console.log('Watching file: ' + eeLogPath)
 fs.watchFile(eeLogPath,(currStat,prevStat) => {
-    if (currStat.size != prevStat.size) {
-        console.log('file changed: ',eeLogPath)
+    if (currStat.mtime != prevStat.mtime) {
+        console.log('file changed: ', eeLogPath)
         logRead()
     }
 })
@@ -18,9 +19,10 @@ fs.readdir(appFolder + 'logs', (err,files) => {
     if (err) emitError('Error getting files', err.stack)
     else {
         for (const filename of files) {
-            fs.watchFile(appFolder + 'logs' + filename,(currStat,prevStat) => {
-                if (currStat.size != prevStat.size) {
-                    console.log('file changed: ',eeLogPath)
+            console.log('Watching file: ' + appFolder + 'logs/' + filename)
+            fs.watchFile(appFolder + 'logs/' + filename,(currStat,prevStat) => {
+                if (currStat.mtime != prevStat.mtime) {
+                    console.log('file changed: ', appFolder + 'logs/' + filename)
                     getStatistics()
                 }
             })
@@ -42,7 +44,6 @@ function logRead () {
                     if (line.match(`Diag: Current time:`)) {
                         const temp = line.split('UTC:')
                         logPrefix = temp[1].replace(/ /g,'').replace(/\:/g,'')
-                        console.log(logPrefix)
                         break
                     }
                 }
@@ -51,6 +52,7 @@ function logRead () {
                 getFile(appFolder + `logs/${logPrefix}_log.json`).then(data => {
                     //console.log(JSON.stringify(data))
                     var logfile:any = typeof data == 'object' ? data:JSON.parse((data as string).replace(/^\uFEFF/, ''))
+                    var logChanged = false
                     for (const [index1,val] of logArr.entries()) {
                         var eventHandled:boolean = false
                         var tradeSuccess:boolean = false
@@ -62,15 +64,15 @@ function logRead () {
                         const line = val.replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
                         if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=Are you sure you want to accept this trade')) {
                             log_seq = "s_" + (line.split(' '))[0]
-                            console.log('found trade at '+log_seq)
                             for (const [index,val] of logfile.trades.entries()) {
                                 if (val.log_seq==log_seq) {       // Event already handled
-                                    console.log('event handled')
                                     eventHandled = true
                                     break
                                 }
                             }
                             if (eventHandled) continue
+                            logChanged = true
+                            console.log('found trade at '+ log_seq)
                             for (var i=index1+1; i<=i+200; i++) {
                                 const temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
                                 if (temp.match('Script Info: Dialog.lua: Dialog::CreateOkdescription=The trade was successful!, leftItem=\/Menu\/Confirm_Item_Ok')) {
@@ -122,17 +124,16 @@ function logRead () {
                         log_seq = ""
                         complete_seq = ""
                         if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=Are you sure you want to equip')) {
-                            console.log('hiii')
                             log_seq = "s_" + (line.split(' '))[0]
-                            console.log('found relic squad at '+ log_seq)
                             for (const [index,val] of logfile.mission_initialize.entries()) {
                                 if (val.log_seq==log_seq) {       // Event already handled
-                                    console.log('event handled')
                                     eventHandled = true
                                     break
                                 }
                             }
                             if (eventHandled) continue
+                            logChanged = true
+                            console.log('found relic squad at '+ log_seq)
                             for (var i=index1+1; i<=i+20; i++) {    //Confirmation must be in next 20 lines
                                 const temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
                                 if (temp.match('Script Info: Dialog.lua: Dialog::SendResult4')) {
@@ -160,15 +161,15 @@ function logRead () {
                         complete_seq = ""
                         if (line.match('Script Info: ProjectionRewardChoice.lua: Got rewards')) {
                             complete_seq = "s_" + (line.split(' '))[0]
-                            console.log('found gotRewards at '+ log_seq)
                             for (const [index,val] of logfile.mission_initialize.entries()) {
                                 if (val.complete_seq==complete_seq) {       // Event already handled
-                                    console.log('event handled')
                                     eventHandled = true
                                     break
                                 }
                             }
                             if (eventHandled) continue
+                            logChanged = true
+                            console.log('found gotRewards at '+ log_seq)
                             // Find the recent unsuccessful event
                             for (const [index,mission] of logfile.mission_initialize.entries()) {
                                 if (mission.complete_seq=="N/A Yet") {       // Event already handled
@@ -186,11 +187,13 @@ function logRead () {
                             continue
                         }
                     }
-                    console.log(JSON.stringify(logfile))
-                    fs.writeFile(appFolder + `logs/${logPrefix}_log.json`, JSON.stringify(logfile), (err) => {
-                        if (err) emitError('Error writing log file', err.stack)
-                    });
-                }).catch(err => emitError('Error getting log file', err))
+                    //console.log(JSON.stringify(logfile))
+                    if (logChanged) {
+                        fs.writeFile(appFolder + `logs/${logPrefix}_log.json`, JSON.stringify(logfile), (err) => {
+                            if (err) emitError('Error writing log file', err.stack)
+                        });
+                    }
+                }).catch(err => emitError('Error getting log file', err.stack? err.stack:err))
             }
         })
 }
@@ -272,10 +275,8 @@ function wfTradeHandler(offeringItems:Array<string>,receivingItems:Array<string>
                     }
                 })
             })
-
             fs.writeFile(appFolder + 'relicsDB.json', JSON.stringify(relicDB), (err) => {
                 if (err) emitError('Error writing log file', err.stack)
-                else mainEvent.emit('relicDBFetch', relicDB)
             });
         }
     })
@@ -296,7 +297,6 @@ function wfMissionHandler(relicEquipped:string)
             })
             fs.writeFile(appFolder + 'relicsDB.json', JSON.stringify(relicDB), (err) => {
                 if (err) emitError('Error writing log file', err.stack)
-                else mainEvent.emit('relicDBFetch', relicDB)
             });
         }
     })
@@ -309,19 +309,22 @@ function getStatistics() {
         else {
             var rawStatistics = {mission_initialize: [], trades: []}
             for (const filename of files) {
-                console.log(filename)
                 const fileContent = JSON.parse((fs.readFileSync(appFolder + 'logs/' + filename,'utf-8')).replace(/^\uFEFF/, ''))
                 try {
                     fileContent.mission_initialize.forEach((mission:object) => (rawStatistics.mission_initialize as Array<object>).push(mission))
+                } catch (e) {}
+                try {
                     fileContent.trades.forEach((trade:object) => (rawStatistics.trades as Array<object>).push(trade))
                 } catch (e) {}
             }
+            console.log('Emitting: statisticsFetch' )
             mainEvent.emit('statisticsFetch', rawStatistics)
         }
     })
 }
 
 function emitError(title:string,err:any) {
+    console.log('Emitting: error' )
     mainEvent.emit('error', {title: title, text: typeof err === 'object' ? JSON.stringify(err):err})
 }
 

@@ -18,7 +18,8 @@ import {
     Typography,
     Avatar,
     Grid,
-    Tooltip
+    Tooltip,
+    CssBaseline
 } from '@mui/material';
 import {
     AddBox,
@@ -122,6 +123,7 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
     render() {
         return (
             <Box height="90vh">
+                <CssBaseline />
                 <Grid container spacing={4}>
                     <Grid item xs={12}>
                         <AddRelic childCallback={this.childCallback}/>

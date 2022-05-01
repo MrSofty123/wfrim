@@ -18,7 +18,17 @@ import {
     Typography,
     Avatar,
     Grid,
-    Tooltip
+    Tooltip,
+    ListItem,
+    ListItemButton,
+    ListItemText,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    CssBaseline
 } from '@mui/material';
 import {
     AddBox,
@@ -33,7 +43,7 @@ import meso from '../../../assets/meso.png'
 import neo from '../../../assets/neo.png'
 import axi from '../../../assets/axi.png'
 import Repeatable from 'react-repeatable'
-import {convertUpper,dynamicSort, dynamicSortDesc} from './extras'
+//import {convertUpper,dynamicSort, dynamicSortDesc} from './extras'
 import {config} from './config'
 
 var rawStatistics = {mission_initialize: [], trades: []}
@@ -118,6 +128,26 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                 },
                 opened_distr: {[key: string]: {opened: 0}},
                 opened_sorted: string[]
+            },
+            trades: {
+                plat: {
+                    spent: {
+                        all_time: number,
+                        today: number,
+                        daily_avg: number,
+                        spentPerDay: {[key: string]: number}
+                    },
+                    gained: {
+                        all_time: number,
+                        today: number,
+                        daily_avg: number,
+                        gainedPerDay: {[key: string]: number}
+                    }
+                },
+                items: {
+                    sold: {[key: string]: number},
+                    bought: {[key: string]: number}
+                }
             }
         }
         var statistics:Istatistics = {
@@ -144,13 +174,32 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                 },
                 opened_distr: {},
                 opened_sorted: []
+            },
+            trades: {
+                plat: {
+                    spent: {
+                        all_time: 0,
+                        today: 0,
+                        daily_avg: 0,
+                        spentPerDay: {}
+                    },
+                    gained: {
+                        all_time: 0,
+                        today: 0,
+                        daily_avg: 0,
+                        gainedPerDay: {}
+                    }
+                },
+                items: {
+                    sold: {},
+                    bought: {}
+                }
             }
         }
-        var test = 0
         rawStatistics.mission_initialize.forEach((mission:any) => {
             if (mission.status == 'successful') {
                 mission.relicEquipped = mission.relicEquipped.toLowerCase()
-                mission.timestamp =  String(mission.timestamp).length == 10 ? Number(mission.timestamp)*1000:Number(mission.timestamp)
+                mission.timestamp = String(mission.timestamp).length == 10 ? Number(mission.timestamp)*1000:Number(mission.timestamp)
                 // opened_distr
                 if (!statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)]) statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)] = {opened: 0}
                 statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)].opened++
@@ -163,10 +212,6 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                     if (mission.timestamp) {
                         if (!statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
                         statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
-                    }
-
-                    if (mission.timestamp) {
-                        test = new Date(mission.timestamp).setHours(0,0,0,0)
                     }
                 // Vaulted Opened
                 const vault_status = items_list[getRelicUrl(mission.relicEquipped)]?.vault_status
@@ -196,7 +241,6 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                         break
                     }
                 }
-                // 
             }
         })
         // Total - daily_avg
@@ -204,52 +248,194 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
         for (const key in statistics.relics.opened.total.runsPerDay) {
             avg += statistics.relics.opened.total.runsPerDay[key].length
         }
-        statistics.relics.opened.total.daily_avg = avg / Object.keys(statistics.relics.opened.total.runsPerDay).length
+        statistics.relics.opened.total.daily_avg = Number((avg / Object.keys(statistics.relics.opened.total.runsPerDay).length).toFixed(1))
         // Vaulted - daily_avg
         var avg = 0
         for (const key in statistics.relics.opened.vaulted.runsPerDay) {
             avg += statistics.relics.opened.vaulted.runsPerDay[key].length
         }
-        statistics.relics.opened.vaulted.daily_avg = avg / Object.keys(statistics.relics.opened.vaulted.runsPerDay).length
+        statistics.relics.opened.vaulted.daily_avg = Number((avg / Object.keys(statistics.relics.opened.vaulted.runsPerDay).length).toFixed(1))
         // Tracked - daily_avg
         var avg = 0
         for (const key in statistics.relics.opened.tracked.runsPerDay) {
             avg += statistics.relics.opened.tracked.runsPerDay[key].length
         }
-        statistics.relics.opened.tracked.daily_avg = avg / Object.keys(statistics.relics.opened.tracked.runsPerDay).length
-
+        statistics.relics.opened.tracked.daily_avg = Number((avg / Object.keys(statistics.relics.opened.tracked.runsPerDay).length).toFixed(1))
         statistics.relics.opened_sorted = Object.keys(statistics.relics.opened_distr).sort(function(a,b){return statistics.relics.opened_distr[b].opened-statistics.relics.opened_distr[a].opened})
 
+        rawStatistics.trades.forEach((trade:any) => {
+            trade.timestamp = String(trade.timestamp).length == 10 ? Number(trade.timestamp)*1000:Number(trade.timestamp)
+            if (trade.status == 'successful' && !trade.deprecated) {
+                try {
+                    trade.offeringItems.forEach((item:string) => {
+                        if (item.toLowerCase().match('platinum')) {
+                            // all time
+                            statistics.trades.plat.spent.all_time += Number((item.split('_'))[2])
+                            // today
+                            if (trade.timestamp && trade.timestamp >= new Date().setHours(0,0,0,0)) statistics.trades.plat.spent.today += Number((item.split('_'))[2])
+                            // tradesPerDay
+                            if (trade.timestamp) {
+                                if (!statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))]) statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] = 0
+                                statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] += Number((item.split('_'))[2])
+                            }
+                        }
+                        // items quantity sold
+                        if (!item.toLowerCase().match('platinum')) {
+                            if (!statistics.trades.items.sold[item.toLowerCase()]) statistics.trades.items.sold[item.toLowerCase()] = 0
+                            statistics.trades.items.sold[item.toLowerCase()]++
+                        }
+                    })
+                } catch (e) {}
+                try {
+                    trade.receivingItems.forEach((item:string) => {
+                        if (item.toLowerCase().match('platinum')) {
+                            // all time
+                            statistics.trades.plat.gained.all_time += Number((item.split('_'))[2])
+                            // today
+                            if (trade.timestamp && trade.timestamp >= new Date().setHours(0,0,0,0)) statistics.trades.plat.gained.today += Number((item.split('_'))[2])
+                            // tradesPerDay
+                            if (trade.timestamp) {
+                                if (!statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))]) statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] = 0
+                                statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] += Number((item.split('_'))[2])
+                            }
+                        }
+                        // items quantity bought
+                        if (!item.toLowerCase().match('platinum')) {
+                            if (!statistics.trades.items.bought[item.toLowerCase()]) statistics.trades.items.bought[item.toLowerCase()] = 0
+                            statistics.trades.items.bought[item.toLowerCase()]++
+                        }
+                    })
+                } catch (e) {}
+            }
+        })
+        //console.log(JSON.stringify(statistics.trades))
+
+        // Plat Spent - daily_avg
+        var avg = 0
+        for (const key in statistics.trades.plat.spent.spentPerDay) {
+            avg += statistics.trades.plat.spent.spentPerDay[key]
+        }
+        statistics.trades.plat.spent.daily_avg = Number((avg / Object.keys(statistics.trades.plat.spent.spentPerDay).length).toFixed(1))
+        // Plat Gained - daily_avg
+        var avg = 0
+        for (const key in statistics.trades.plat.gained.gainedPerDay) {
+            avg += statistics.trades.plat.gained.gainedPerDay[key]
+        }
+        statistics.trades.plat.gained.daily_avg = Number((avg / Object.keys(statistics.trades.plat.gained.gainedPerDay).length).toFixed(1))
+        //console.log(JSON.stringify(sortObject(statistics.trades.items.sold)))
         return (
             <React.Fragment>
-            <Typography color="inherit">Relics opened</Typography>
-            <Typography color="inherit">Total Opened all time: {statistics.relics.opened.total.all_time}</Typography>
-            <Typography color="inherit">Total Opened today: {statistics.relics.opened.total.today}</Typography>
-            <Typography color="inherit">Total Opened daily avg: {statistics.relics.opened.total.daily_avg}</Typography>
-            <Typography color="inherit">Tracked Opened all time: {statistics.relics.opened.tracked.all_time}</Typography>
-            <Typography color="inherit">Tracked Opened today: {statistics.relics.opened.tracked.today}</Typography>
-            <Typography color="inherit">Tracked Opened daily avg: {statistics.relics.opened.tracked.daily_avg}</Typography>
-            <Typography color="inherit">Vaulted Opened all time: {statistics.relics.opened.vaulted.all_time}</Typography>
-            <Typography color="inherit">Vaulted Opened today: {statistics.relics.opened.vaulted.today}</Typography>
-            <Typography color="inherit">Vaulted Opened daily avg: {statistics.relics.opened.vaulted.daily_avg}</Typography>
-            <Typography color="inherit">Top relics opened:{'\r\n'}{statistics.relics.opened_sorted.map(relic => `${relic}: ${statistics.relics.opened_distr[relic].opened}\r\n`)}</Typography>
-            <Typography color="inherit">{test}</Typography>
+                <Grid container spacing={2} justifyContent="center">
+                    <Grid item xs={6}>
+                        <Typography color="inherit" style={{fontSize: '32px'}}>Relics</Typography>
+                        <Typography color="inherit">Total Opened all time: {statistics.relics.opened.total.all_time}</Typography>
+                        <Typography color="inherit">Total Opened today: {statistics.relics.opened.total.today}</Typography>
+                        <Typography color="inherit">Total Opened daily avg: {statistics.relics.opened.total.daily_avg}</Typography>
+                        <Typography color="inherit">Tracked Opened all time: {statistics.relics.opened.tracked.all_time}</Typography>
+                        <Typography color="inherit">Tracked Opened today: {statistics.relics.opened.tracked.today}</Typography>
+                        <Typography color="inherit">Tracked Opened daily avg: {statistics.relics.opened.tracked.daily_avg}</Typography>
+                        <Typography color="inherit">Vaulted Opened all time: {statistics.relics.opened.vaulted.all_time}</Typography>
+                        <Typography color="inherit">Vaulted Opened today: {statistics.relics.opened.vaulted.today}</Typography>
+                        <Typography color="inherit">Vaulted Opened daily avg: {statistics.relics.opened.vaulted.daily_avg}</Typography>
+                        <Typography color="inherit">Top Relics Opened</Typography>
+                        <TableContainer sx={{ maxHeight: 350, maxWidth: 250 }}>
+                            <Table>
+                                <TableHead>
+                                <TableRow>
+                                    <TableCell>Relic</TableCell>
+                                    <TableCell align="right">Opened</TableCell>
+                                </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                {sortObject(statistics.relics.opened_distr,'opened').map((relic) => (
+                                    <TableRow
+                                    key={relic.key + '_top_opened'}
+                                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                    >
+                                    <TableCell component="th" scope="row">
+                                        {convertUpper(relic.key.replace('_relic',''))}
+                                    </TableCell>
+                                    <TableCell align="right">{relic.value}</TableCell>
+                                    </TableRow>
+                                ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    </Grid>
+                    <Grid item xs={6}>
+                        <Typography color="inherit" style={{fontSize: '32px'}}>Platinum</Typography>
+                        <Typography color="inherit">Plat gained all time: {statistics.trades.plat.gained.all_time}</Typography>
+                        <Typography color="inherit">Plat gained today: {statistics.trades.plat.gained.today}</Typography>
+                        <Typography color="inherit">Plat gained daily avg: {statistics.trades.plat.gained.daily_avg}</Typography>
+                        <Typography color="inherit">Plat spent all time: {statistics.trades.plat.spent.all_time}</Typography>
+                        <Typography color="inherit">Plat spent today: {statistics.trades.plat.spent.today}</Typography>
+                        <Typography color="inherit">Plat spent daily avg: {statistics.trades.plat.spent.daily_avg}</Typography>
+                        <Grid container spacing={2} justifyContent="center">
+                            <Grid item xs={6}>
+                                <Typography color="inherit">Top Items sold</Typography>
+                                <TableContainer sx={{ maxHeight: 350, maxWidth: 370}}>
+                                    <Table>
+                                        <TableHead>
+                                        <TableRow>
+                                            <TableCell>Item</TableCell>
+                                            <TableCell align="right">Quantity</TableCell>
+                                        </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                        {sortObject(statistics.trades.items.sold).map((item:any) => (
+                                            <TableRow
+                                            key={item.key + '_top_sold'}
+                                            sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                            >
+                                            <TableCell component="th" scope="row">
+                                                {convertUpper(item.key)}
+                                            </TableCell>
+                                            <TableCell align="right">{item.value}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography color="inherit">Top Items bought</Typography>
+                                <TableContainer sx={{ maxHeight: 350, maxWidth: 370 }}>
+                                    <Table>
+                                        <TableHead>
+                                        <TableRow>
+                                            <TableCell>Item</TableCell>
+                                            <TableCell align="right">Quantity</TableCell>
+                                        </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                        {sortObject(statistics.trades.items.bought).map((item:any) => (
+                                            <TableRow
+                                            key={item.key + '_top_bought'}
+                                            sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                            >
+                                            <TableCell component="th" scope="row">
+                                                {convertUpper(item.key)}
+                                            </TableCell>
+                                            <TableCell align="right">{item.value}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </Grid>
           </React.Fragment>
         )
     }
 
     render() {
         return (
-            <Box>
+            <Box style={{maxHeight: "100vh", overflow: 'auto'}}>
+                <CssBaseline />
                 {this.state.update}
-                <Grid container spacing={4}>
-                    <Grid item xs={12}>
-                        <Typography>Statistics</Typography>
-                    </Grid>
-                    <Grid item xs={12}>
-                        <this.computeStats />
-                    </Grid>
-                </Grid>
+                <this.computeStats />
             </Box>
         )
     }
@@ -259,4 +445,20 @@ export {Statistics}
 function getRelicUrl(str:string) {
     str = str.toLowerCase().replace(/ /g,'_')
     return (str.split('_'))[0] + '_' + (str.split('_'))[1] + '_relic'
+}
+
+function convertUpper(str:string) {
+    return str.replace(/_/g, " ").replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase())
+}
+
+function sortObject(obj:any, key:string = "") {
+    var sorted_keys = Object.keys(obj).sort(function(a,b){return key.length > 0 ? obj[b][key]-obj[a][key] : obj[b]-obj[a]})
+    var new_arr:Array<any> = []
+    sorted_keys.forEach(k => {
+        new_arr.push({
+            key: k,
+            value: key.length > 0 ? obj[k][key] : obj[k]
+        })
+    })
+    return new_arr
 }

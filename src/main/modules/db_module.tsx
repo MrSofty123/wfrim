@@ -16,11 +16,10 @@ const appFolder = Os.homedir() + '/Documents/WFRIM/'
 
 database_connection().then(res => pool=(res as PoolClient)).catch(err => emitError('Database connection failure', err))
 
-setInterval(pushRelicDB, 180000);
-setImmediate(pushRelicDB)
+pushRelicDB()
+mainEvent.on('pushRelicDB', () => pushRelicDB())
 
 function pushRelicDB() {
-    console.log('pushRelicDB')
     if (!pool) {
         setTimeout(pushRelicDB, 1000);
         console.log('db not ready yet')
@@ -61,7 +60,7 @@ function pushRelicDB() {
                 const filepath = appFolder + 'relicsDB.json'
                 fs.readFile(filepath,'utf8',(err,data) => {
                     if (err) {
-                        emitError(`Error reading file ${filepath}`,err)
+                        emitError(`Error reading file ${filepath}`,err.stack)
                         release()
                         return release();
                     }
