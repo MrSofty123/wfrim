@@ -7,12 +7,29 @@ import { mainEvent } from './eventHandler';
 import './modules/db_module'
 
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
-preprocessor()
+//preprocessor()
 var relicsDB_ignoreWatch = false
-fs.watchFile(appFolder + 'relicsDB.json',(currStat,prevStat) => {
-    if (currStat.mtimeMs != prevStat.mtimeMs) {
+const relicsDBWatcher = fs.watch(appFolder + 'relicsDB.json',(event,filename) => {
+    if (event == 'change') {
+        console.log('file changed: ' + appFolder + 'relicsDB.json')
         handleChangerelicsDB()
     }
+})
+fs.readFile(appFolder + 'relicsDB.json','utf8',(err,data) => {
+    if (err) emitError(`Error reading file ${appFolder + 'relicsDB.json'}`,err.stack? err.stack:err)
+    else {
+        try {
+            data = JSON.parse(data.replace(/^\uFEFF/, ''))
+        } catch (err:any) {
+            emitError(`Error parsing data ${appFolder + 'relicsDB.json'}`,err.stack? err.stack:err)
+            return;
+        }
+        mainEvent.emit('relicDBFetch', data)
+    }
+})
+mainEvent.on('closeFileWatchers', () => {
+    console.log('Closing file watcher: relicsDBWatcher')
+    relicsDBWatcher.close()
 })
 function handleChangerelicsDB() {
     console.log(relicsDB_ignoreWatch)
@@ -28,44 +45,6 @@ function handleChangerelicsDB() {
     mainEvent.emit('pushRelicDB', [])
 }
 
-function preprocessor() {
-    ensureDirectoryExistence(appFolder)
-    // relicsDB.json
-    var filepath = appFolder + 'relicsDB.json'
-    fs.open(filepath,'r',function(notexists, f) {
-        if (notexists) {
-            var filepath = appFolder + 'relicsDB.json'
-            fs.writeFile( filepath, "[]", (err) => {
-                if (err) emitError(`Error creating directory ${filepath}`,err)
-                else mainEvent.emit('relicDBFetch', [])
-            });
-        } else {
-            var filepath = appFolder + 'relicsDB.json'
-            fs.readFile(filepath,'utf8',(err,data) => {
-                if (err) emitError(`Error reading file ${filepath}`,err)
-                else {
-                    try {
-                        data = JSON.parse(data.replace(/^\uFEFF/, ''))
-                    } catch (err) {
-                        emitError(`Error parsing data ${filepath}`,err)
-                        return;
-                    }
-                    mainEvent.emit('relicDBFetch', data)
-                }
-            })
-        }
-    });
-    // items_list.json
-    var filepath = appFolder + 'items_list.json'
-    fs.open(filepath,'r',function(notexists, f) {
-        if (notexists) {
-            var filepath = appFolder + 'items_list.json'
-            fs.writeFile( filepath, "[]", (err) => {
-                if (err) emitError(`Error creating directory ${filepath}`,err)
-            });
-        }
-    });
-}
 
 ipcMain.on('postRelicDB', (event,arg) => {
     console.log('Main request: postRelicDB')
@@ -89,13 +68,6 @@ ipcMain.on('ipc-example', async (event, arg) => {
 });
 
 
-function ensureDirectoryExistence(filePath:string) {
-    var dirname = path.dirname(filePath);
-    if (!fs.existsSync(dirname)) {
-        ensureDirectoryExistence(dirname);
-        fs.mkdirSync(dirname);
-    }
-}
 
 function emitError(title:string,err:any) {
     mainEvent.emit('error', {title: title, text: JSON.stringify(err)})

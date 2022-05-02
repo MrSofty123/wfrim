@@ -8,7 +8,45 @@
  * When running `npm run build` or `npm run build:main`, this file is compiled to
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
+
 import path from 'path';
+import fs from 'fs';
+import Os from 'os'
+const appFolder = Os.homedir() + '/Documents/WFRIM/'
+/*
+ensureDirectoryExistence(appFolder)
+ensureDirectoryExistence(appFolder + 'logs')
+function ensureDirectoryExistence(filePath:string) {
+    var dirname = path.dirname(filePath);
+    if (!fs.existsSync(dirname)) {
+        ensureDirectoryExistence(dirname);
+        fs.mkdirSync(dirname);
+    }
+}
+*/
+try {
+  fs.mkdirSync(appFolder);
+} catch (e) {}
+try {
+  fs.mkdirSync(appFolder + 'logs');
+} catch (e) {}
+if (!fs.existsSync(appFolder + 'relicsDB.json')) fs.writeFileSync(appFolder + 'relicsDB.json','[]')
+if (!fs.existsSync(appFolder + 'items_list.json')) fs.writeFileSync(appFolder + 'items_list.json','[]')
+if (!fs.existsSync(appFolder + 'config.json')) fs.writeFileSync(appFolder + 'config.json','{}')
+if (!fs.existsSync(appFolder + 'logs/full_log.json')) fs.writeFileSync(appFolder + 'logs/full_log.json',JSON.stringify({mission_initialize: [], trades: []}))
+if (!fs.existsSync(appFolder + 'logs/gdpr_log.json')) fs.writeFileSync(appFolder + 'logs/gdpr_log.json',JSON.stringify({mission_initialize: [], trades: []}))
+/*
+fs.openSync(appFolder + 'relicsDB.json','r',function(notexists, f) {
+    if (notexists) fs.writeFileSync(appFolder + 'relicsDB.json', "[]");
+});
+fs.open(appFolder + 'items_list.json','r',function(notexists, f) {
+    if (notexists) fs.writeFileSync( appFolder + 'items_list.json', "[]");
+});
+fs.open(appFolder + 'config.json','r',function(notexists, f) {
+    if (notexists) fs.writeFileSync( appFolder + 'config.json', "[]");
+});
+*/
+
 import { app, BrowserWindow, shell, dialog, ipcMain } from 'electron';
 import Electron from 'electron'
 import { autoUpdater } from 'electron-updater';
@@ -18,6 +56,9 @@ import { resolveHtmlPath } from './util';
 import './ipcHandler'
 import './modules/log_reader'
 import {mainEvent} from './eventHandler'
+
+
+
 
 export default class AppUpdater {
   constructor() {
@@ -169,6 +210,11 @@ mainEvent.on('importGDPRResponse', function importGDPRResponse(data) {
   //console.log('************************************************************call statisticsFetch******************************************************************************')
   if (!rendererReady || !mainWindow) setTimeout(importGDPRResponse, 1000, data)
   else mainWindow?.webContents.send('importGDPRResponse', data)
+})
+mainEvent.on('importSRBResponse', function importSRBResponse(data) {
+  //console.log('************************************************************call statisticsFetch******************************************************************************')
+  if (!rendererReady || !mainWindow) setTimeout(importSRBResponse, 1000, data)
+  else mainWindow?.webContents.send('importSRBResponse', data)
 })
 
 //autoUpdater.on('checking-for-update', () => displayAlert('update', 'Checking for update.'))

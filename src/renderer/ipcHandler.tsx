@@ -36,10 +36,18 @@ event.on('postRelicDB', (data) => {
 event.on('postConfig', (data) => {
     window.electron.ipcRenderer.sendMain('postConfig', data);
 })
+
 event.on('importGDPRRequest', (data) => {
     window.electron.ipcRenderer.sendMain('importGDPRRequest', data);
 })
 window.electron.ipcRenderer.on('importGDPRResponse', (arg) => {
     console.log('Render response: importGDPRResponse')
     event.emit('importGDPRResponse', arg)
+});
+event.on('importSRBRequest', (data) => {
+    window.electron.ipcRenderer.sendMain('importSRBRequest', data);
+})
+window.electron.ipcRenderer.on('importSRBResponse', (arg) => {
+    console.log('Render response: importSRBResponse')
+    event.emit('importSRBResponse', arg)
 });

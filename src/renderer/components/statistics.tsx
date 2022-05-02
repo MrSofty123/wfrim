@@ -6,11 +6,11 @@ import {
     DialogTitle, 
     DialogContent,
     DialogContentText,
+    DialogActions,
     Alert,
     FormControlLabel,
     Checkbox,
     TextField,
-    DialogActions,
     Box,
     Card,
     CardContent,
@@ -201,10 +201,10 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                 }
             }
         }
-        rawStatistics.mission_initialize.forEach((mission:any) => {
+        rawStatistics.mission_initialize.forEach((mission:any,index:number) => {
             if (mission.status == 'successful') {
                 mission.relicEquipped = mission.relicEquipped.toLowerCase()
-                mission.timestamp = String(mission.timestamp).length == 10 ? Number(mission.timestamp)*1000:Number(mission.timestamp)
+                mission.timestamp = new Date(mission.timestamp).getTime()
                 // opened_distr
                 if (!statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)]) statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)] = {opened: 0}
                 statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)].opened++
@@ -212,24 +212,20 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                     // all time
                     statistics.relics.opened.total.all_time++
                     // today
-                    if (mission.timestamp && mission.timestamp >= new Date().setHours(0,0,0,0)) statistics.relics.opened.total.today++
+                    if (mission.timestamp >= new Date().setHours(0,0,0,0)) statistics.relics.opened.total.today++
                     // runsPerDay
-                    if (mission.timestamp) {
-                        if (!statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
-                        statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
-                    }
+                    if (!statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
+                    statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
                 // Vaulted Opened
                 const vault_status = items_list[getRelicUrl(mission.relicEquipped)]?.vault_status
                 if (vault_status == 'V' || vault_status == 'B' || vault_status == 'P') {
                     // all time
                     statistics.relics.opened.vaulted.all_time++
                     // today
-                    if (mission.timestamp && mission.timestamp >= new Date().setHours(0,0,0,0)) statistics.relics.opened.vaulted.today++
+                    if (mission.timestamp >= new Date().setHours(0,0,0,0)) statistics.relics.opened.vaulted.today++
                     // runsPerDay
-                    if (mission.timestamp) {
-                        if (!statistics.relics.opened.vaulted.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.vaulted.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
-                        statistics.relics.opened.vaulted.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
-                    }
+                    if (!statistics.relics.opened.vaulted.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.vaulted.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
+                    statistics.relics.opened.vaulted.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
                 }
                 // Tracked Opened
                 for (const relic of relicsDB) {
@@ -237,12 +233,10 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                         // all time
                         statistics.relics.opened.tracked.all_time++
                         // today
-                        if (mission.timestamp && mission.timestamp >= new Date().setHours(0,0,0,0)) statistics.relics.opened.tracked.today++
+                        if (mission.timestamp >= new Date().setHours(0,0,0,0)) statistics.relics.opened.tracked.today++
                         // runsPerDay
-                        if (mission.timestamp) {
-                            if (!statistics.relics.opened.tracked.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.tracked.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
-                            statistics.relics.opened.tracked.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
-                        }
+                        if (!statistics.relics.opened.tracked.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.tracked.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
+                        statistics.relics.opened.tracked.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
                         break
                     }
                 }
@@ -269,7 +263,7 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
         statistics.relics.opened_sorted = Object.keys(statistics.relics.opened_distr).sort(function(a,b){return statistics.relics.opened_distr[b].opened-statistics.relics.opened_distr[a].opened})
 
         rawStatistics.trades.forEach((trade:any) => {
-            trade.timestamp = String(trade.timestamp).length == 10 ? Number(trade.timestamp)*1000:Number(trade.timestamp)
+            trade.timestamp = new Date(trade.timestamp).getTime()
             if (trade.status == 'successful' && !trade.deprecated) {
                 try {
                     trade.offeringItems.forEach((item:string) => {
@@ -278,12 +272,10 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                             // all time
                             statistics.trades.plat.spent.all_time += Number((item.split('_'))[2])
                             // today
-                            if (trade.timestamp && trade.timestamp >= new Date().setHours(0,0,0,0)) statistics.trades.plat.spent.today += Number((item.split('_'))[2])
+                            if (trade.timestamp >= new Date().setHours(0,0,0,0)) statistics.trades.plat.spent.today += Number((item.split('_'))[2])
                             // tradesPerDay
-                            if (trade.timestamp) {
-                                if (!statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))]) statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] = 0
-                                statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] += Number((item.split('_'))[2])
-                            }
+                            if (!statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))]) statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] = 0
+                            statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] += Number((item.split('_'))[2])
                         }
                         // items quantity sold
                         if (!item.match('platinum')) {
@@ -330,12 +322,10 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                             // all time
                             statistics.trades.plat.gained.all_time += Number((item.split('_'))[2])
                             // today
-                            if (trade.timestamp && trade.timestamp >= new Date().setHours(0,0,0,0)) statistics.trades.plat.gained.today += Number((item.split('_'))[2])
+                            if (trade.timestamp >= new Date().setHours(0,0,0,0)) statistics.trades.plat.gained.today += Number((item.split('_'))[2])
                             // tradesPerDay
-                            if (trade.timestamp) {
-                                if (!statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))]) statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] = 0
-                                statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] += Number((item.split('_'))[2])
-                            }
+                            if (!statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))]) statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] = 0
+                            statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] += Number((item.split('_'))[2])
                         }
                         // items quantity bought
                         if (!item.match('platinum')) {

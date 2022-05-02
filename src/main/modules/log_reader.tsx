@@ -8,14 +8,45 @@ import { ipcMain } from 'electron';
 const eeLogPath = Os.homedir() + '/AppData/Local/Warframe/EE.log'
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
 // watch ee.log
-console.log('Watching file: ' + eeLogPath)
-fs.watchFile(eeLogPath,(currStat,prevStat) => {
-    if (currStat.mtime != prevStat.mtime) {
+//console.log('Watching file: ' + eeLogPath)
+const eeLogWatcher = fs.watch(eeLogPath,(event,filename) => {
+    if (event == 'change') {
         console.log('file changed: ', eeLogPath)
         logRead()
     }
 })
-watchLogs()
+const logsWatcher = fs.watch(appFolder + 'logs',(event,filename) => {
+    if (event == 'change') {
+        console.log('file changed: ', appFolder + 'logs/' + filename)
+        getStatistics()
+    }
+})
+mainEvent.on('closeFileWatchers', () => {
+    console.log('Closing file watcher: eeLogWatcher')
+    eeLogWatcher.close()
+    console.log('Closing file watcher: logsWatcher')
+    logsWatcher.close()
+})
+/*
+function watchLogs() {
+    // watch logs files
+    fs.readdir(appFolder + 'logs', (err,files) => {
+        if (err) emitError('Error getting files', err.stack)
+        else {
+            for (const filename of files) {
+                console.log('Watching file: ' + appFolder + 'logs/' + filename)
+                fs.watchFile(appFolder + 'logs/' + filename,(currStat,prevStat) => {
+                    if (currStat.mtime != prevStat.mtime) {
+                        console.log('file changed: ', appFolder + 'logs/' + filename)
+                        getStatistics()
+                    }
+                })
+            }
+        }
+    })
+}
+*/
+//watchLogs()
 getStatistics()
 logRead()
 var combineFiles = false
@@ -109,7 +140,7 @@ function logRead () {
                             //console.log(JSON.stringify(offeringItems))
                             //console.log(JSON.stringify(receivingItems))
 
-                            logfile.trades.push({log_seq: log_seq, complete_seq: complete_seq, trader: trader, offeringItems: offeringItems, receivingItems: receivingItems, status: "successful", timestamp: new Date().getTime()})
+                            logfile.trades.push({log_seq: log_seq, complete_seq: complete_seq, trader: trader, offeringItems: offeringItems, receivingItems: receivingItems, status: "successful", timestamp: new Date()})
                             wfTradeHandler(offeringItems,receivingItems)
                             lastReadLog = index1
                             continue
@@ -155,7 +186,7 @@ function logRead () {
                             const temp = line.toLowerCase().split(' ')
                             relicEquipped = temp[11] + "_" + temp[12] + "_" + temp[13]
                             // Commit event to file
-                            logfile.mission_initialize.push({log_seq: log_seq, complete_seq: complete_seq, relicEquipped: relicEquipped, status: "unsuccessful", timestamp: new Date().getTime(), complete_timestamp: -1})
+                            logfile.mission_initialize.push({log_seq: log_seq, complete_seq: complete_seq, relicEquipped: relicEquipped, status: "unsuccessful", timestamp: new Date(), complete_timestamp: -1})
                             continue
                         }
                         eventHandled = false
@@ -177,7 +208,7 @@ function logRead () {
                             for (const [index,mission] of logfile.mission_initialize.entries()) {
                                 if (mission.complete_seq=="N/A Yet") {      
                                     logfile.mission_initialize[index].complete_seq = complete_seq
-                                    logfile.mission_initialize[index].complete_timestamp = new Date().getTime()
+                                    logfile.mission_initialize[index].complete_timestamp = new Date()
                                     logfile.mission_initialize[index].status = "successful"
                                     // Retrieve info for event handle
                                     relicEquipped = logfile.mission_initialize[index].relicEquipped
@@ -246,7 +277,7 @@ function combineFilesFunc(logPrefix:string) {
                         combineFiles = true
                     }
                 });
-            }).catch(err => emitError('Error reading full_log',err.stack? err.stack:err))
+            }).catch(err => emitError('Error reading full_log.json',err.stack? err.stack:err))
         }
     })
 }
@@ -311,6 +342,7 @@ function getStatistics() {
     fs.readdir(appFolder + 'logs', (err,files) => {
         if (err) emitError('Error getting files', err.stack)
         else {
+            if (files.length <= 0) return
             var rawStatistics = {mission_initialize: [], trades: []}
             for (const filename of files) {
                 var fileContent;
@@ -345,7 +377,7 @@ async function getFile(filepath:string) {
                     if (err) reject(err.stack)
                     else {
                         lastReadLog = -1
-                        watchLogs()
+                        //watchLogs()
                         resolve(obj)
                     }
                 });
@@ -371,23 +403,6 @@ function convertUpper(str:string) {
     return str.replace(/_/g, " ").replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase())
 }
 
-function watchLogs() {
-    // watch logs files
-    fs.readdir(appFolder + 'logs', (err,files) => {
-        if (err) emitError('Error getting files', err.stack)
-        else {
-            for (const filename of files) {
-                console.log('Watching file: ' + appFolder + 'logs/' + filename)
-                fs.watchFile(appFolder + 'logs/' + filename,(currStat,prevStat) => {
-                    if (currStat.mtime != prevStat.mtime) {
-                        console.log('file changed: ', appFolder + 'logs/' + filename)
-                        getStatistics()
-                    }
-                })
-            }
-        }
-    })
-}
 
 ipcMain.on('importGDPRRequest', (event,file_paths:Array<string>) => {
     console.log('importGDPRRequest: request received')
@@ -421,7 +436,7 @@ ipcMain.on('importGDPRRequest', (event,file_paths:Array<string>) => {
             offeringItems: ["platinum_x_" + store_plat],
             receivingItems: ["platinum_x_0"],
             status: "successful",
-            timestamp: 0,
+            timestamp: new Date(0),
             trader: "N/A",
             category: "store_purchases"
         })
@@ -471,7 +486,7 @@ ipcMain.on('importGDPRRequest', (event,file_paths:Array<string>) => {
                 offeringItems: offeringItems,
                 receivingItems: receivingItems,
                 status: "successful",
-                timestamp: trade_time,
+                timestamp: new Date(trade_time),
                 trader: "N/A"
             })
         })
@@ -487,8 +502,7 @@ ipcMain.on('importGDPRRequest', (event,file_paths:Array<string>) => {
                     if (file_name == 'gdpr_log.json') continue
                     const logFile = JSON.parse(fs.readFileSync(appFolder + 'logs/' + file_name,'utf-8').replace(/^\uFEFF/, ''))
                     logFile.trades.forEach((trade:any,index:number) => {
-                        trade.timestamp = String(trade.timestamp).length == 10 ? Number(trade.timestamp)*1000:Number(trade.timestamp)
-                        logFile.trades[index].timestamp = trade.timestamp
+                        trade.timestamp = new Date(trade.timestamp).getTime()
                         if (!trade.timestamp || (trade.timestamp <= last_trade_timestamp))
                             logFile.trades[index].deprecated = true
                         else logFile.trades[index].deprecated = false
@@ -512,4 +526,51 @@ ipcMain.on('importGDPRRequest', (event,file_paths:Array<string>) => {
             content: `Some unexpected error occured`
         }})
     }
+})
+
+ipcMain.on('importSRBRequest', (event,file_paths:any) => {
+    mainEvent.emit('importSRBResponse',{
+        data: {}, 
+        message: {
+        title: 'IMPORT SRB',
+        content: `Fetching data, please wait...`
+    }})
+    // unwatch all files
+    //mainEvent.emit('closeFileWatchers')
+    // write to relicsDB.json
+    fs.writeFileSync(appFolder + 'relicsDB.json', (fs.readFileSync(file_paths.relicsDB, 'utf-8')).replace(/^\uFEFF/, ''))
+    // fetch logs
+    var full_log:any = {mission_initialize: [], trades: []}
+    for (const filepath of file_paths.log_files) {
+        const logFile = JSON.parse((fs.readFileSync(filepath, 'utf-8')).replace(/^\uFEFF/, ''))
+        if (logFile.mission_initialize && logFile.mission_initialize.length) {
+            logFile.mission_initialize.forEach((mission:any) => {
+                if (!mission.timestamp) mission.timestamp = 0
+                if (!mission.complete_timestamp) mission.complete_timestamp = 0
+                mission.timestamp = String(mission.timestamp).length == 10 ? Number(mission.timestamp)*1000:Number(mission.timestamp)
+                // fix timezone issue from srb
+                mission.timestamp = mission.timestamp + (new Date().getTimezoneOffset() * 60 * 1000)
+                mission.timestamp = new Date(mission.timestamp)
+                mission.complete_timestamp = new Date(mission.complete_timestamp)
+                full_log.mission_initialize.push(mission)
+            })
+        }
+        if (logFile.trades && logFile.trades.length) {
+            logFile.trades.forEach((trade:any) => {
+                if (!trade.timestamp) trade.timestamp = 0
+                trade.timestamp = String(trade.timestamp).length == 10 ? Number(trade.timestamp)*1000:Number(trade.timestamp)
+                // fix timezone issue from srb
+                trade.timestamp = trade.timestamp + (new Date().getTimezoneOffset() * 60 * 1000)
+                trade.timestamp = new Date(trade.timestamp)
+                full_log.trades.push(trade)
+            })
+        }
+    }
+    fs.writeFileSync(appFolder + 'logs/full_log.json', JSON.stringify(full_log))
+    mainEvent.emit('importSRBResponse',{
+        data: {}, 
+        message: {
+        title: 'IMPORT SRB',
+        content: `All data imported.`
+    }})
 })
