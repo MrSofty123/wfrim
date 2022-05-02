@@ -29,11 +29,6 @@ window.electron.ipcRenderer.on('statisticsFetch', (arg) => {
     event.emit('statisticsFetch', arg)
 });
 
-window.electron.ipcRenderer.once('error', (arg) => {
-    console.log('Render response: error')
-    if (arg.data)
-        event.emit('error', JSON.parse(arg.data))
-});
 
 event.on('postRelicDB', (data) => {
     window.electron.ipcRenderer.sendMain('postRelicDB', data);
@@ -41,3 +36,10 @@ event.on('postRelicDB', (data) => {
 event.on('postConfig', (data) => {
     window.electron.ipcRenderer.sendMain('postConfig', data);
 })
+event.on('importGDPRRequest', (data) => {
+    window.electron.ipcRenderer.sendMain('importGDPRRequest', data);
+})
+window.electron.ipcRenderer.on('importGDPRResponse', (arg) => {
+    console.log('Render response: importGDPRResponse')
+    event.emit('importGDPRResponse', arg)
+});

@@ -2,6 +2,7 @@ import {mainEvent} from '../eventHandler'
 import fs from 'fs'
 import Os from 'os'
 import path from 'path'
+import { ipcMain } from 'electron';
 //import {config} from './config'
 
 const eeLogPath = Os.homedir() + '/AppData/Local/Warframe/EE.log'
@@ -205,12 +206,10 @@ function combineFilesFunc(logPrefix:string) {
     fs.readdir(appFolder + 'logs', (err,files) => {
         if (err) emitError('Error getting dir files', err.stack)
         else {
-            console.log(JSON.stringify(files))
             getFile(appFolder + `logs/full_log.json`).then(data => {
                 var full_log = typeof data == 'object' ? data:JSON.parse((data as string).replace(/^\uFEFF/, ''))
                 for (const [index,filename] of files.entries()) {
-                    if (filename.match(logPrefix) || filename == 'full_log.json' || filename.toLowerCase().match('gdpr_trades')) continue
-                    console.log('reading ' + filename)
+                    if (filename.match(logPrefix) || filename == 'full_log.json' || filename == 'gdpr_log.json') continue
                     const fileContent = JSON.parse((fs.readFileSync(appFolder + 'logs/' + filename,'utf-8')).replace(/^\uFEFF/, ''))
                     try {
                         for (const [index,newMission] of fileContent.mission_initialize.entries()) {
@@ -241,7 +240,7 @@ function combineFilesFunc(logPrefix:string) {
                     if (err) emitError('Error writing log file', err.stack)
                     else {
                         for (const [index,filename] of files.entries()) {
-                            if (filename.match(logPrefix) || filename == 'full_log.json' || filename.toLowerCase().match('gdpr_trades')) continue
+                            if (filename.match(logPrefix) || filename == 'full_log.json' || filename == 'gdpr_log.json') continue
                             fs.unlinkSync(appFolder + 'logs/' + filename)
                         }
                         combineFiles = true
@@ -265,6 +264,7 @@ function wfTradeHandler(offeringItems:Array<string>,receivingItems:Array<string>
                 relicDB.map((relic,index) => {
                     if (relic.name == relicName) {
                         relicDB[index].quantity--
+                        console.log(JSON.stringify(relicDB[index]))
                     }
                 })
             })
@@ -275,6 +275,7 @@ function wfTradeHandler(offeringItems:Array<string>,receivingItems:Array<string>
                 relicDB.map((relic,index) => {
                     if (relic.name == relicName) {
                         relicDB[index].quantity++
+                        console.log(JSON.stringify(relicDB[index]))
                     }
                 })
             })
@@ -294,7 +295,7 @@ function wfMissionHandler(relicEquipped:string)
             console.log(relicName)
             relicDB.map((relic,index) => {
                 if (relic.name == relicName) {
-                    relicDB[index].quantity = relicDB[index].quantity - 1
+                    relicDB[index].quantity--
                     console.log(JSON.stringify(relicDB[index]))
                 }
             })
@@ -387,3 +388,128 @@ function watchLogs() {
         }
     })
 }
+
+ipcMain.on('importGDPRRequest', (event,file_paths:Array<string>) => {
+    console.log('importGDPRRequest: request received')
+    var gdpr_log:any = {mission_initialize: [], trades: []}
+    var plat_spent:number = 0
+    var plat_received:number = 0
+    var last_trade_timestamp = 0
+    const localeOffset = new Date().getTimezoneOffset() * 60 * 1000 * -1
+    console.log('localeOffset: ' + localeOffset)
+    file_paths.forEach((file_path:string) => {
+        if (!file_path.match('GDPR_Trades_Warframe')) return
+        const filecontentArr = (fs.readFileSync(file_path,'utf-8')).replace(/^\uFEFF/, '').split('\r\n\r\n')
+        var trades = []
+        var store_purchases = []
+        for (var transaction of filecontentArr) {
+            transaction = transaction.trim().toLowerCase()
+            if (transaction.match('traded items given')) trades.push(transaction)
+            if (transaction.match('store purchase')) store_purchases.push(transaction)
+        }
+        // Get store purchase plat amount
+        var store_plat:number = 0
+        store_purchases.forEach((purchase:string) => {
+            var temp = purchase.split('\r\n')
+            store_plat += Number((temp[2].split('platinum : '))[1])
+        })
+        console.log('store plat: ' + store_plat)
+        plat_spent += store_plat
+        gdpr_log.trades.push({
+            complete_seq: "N/A",
+            log_seq: "N/A",
+            offeringItems: ["platinum_x_" + store_plat],
+            receivingItems: ["platinum_x_0"],
+            status: "successful",
+            timestamp: 0,
+            trader: "N/A",
+            category: "store_purchases"
+        })
+        trades.forEach((trade:string) => {
+            const lineArr = trade.split('\r\n')
+            var receiveFlag = false
+            var receivingItems:Array<string> = []
+            var offeringItems:Array<string> = []
+            lineArr.forEach((line:string) => {
+                if (line.match('credits')) return
+                if (line.match('traded items recieved')) receiveFlag = true
+                if (line.match('\t\t')) {
+                    if (line.match('platinum')) {
+                        const plat_str = 'platinum_x_' + Math.abs(Number(((line.split(':'))[1]).trim()))
+                        if (receiveFlag) {
+                            receivingItems.push(plat_str)
+                            plat_received += Number(plat_str.replace("platinum_x_", ""))
+                        } else {
+                            offeringItems.push(plat_str)
+                            plat_spent += Number(plat_str.replace("platinum_x_", ""))
+                        }
+                    } else {
+                        var items = []
+                        if (!line.match(':')) line += ' : 1'
+                        const quantity = Math.abs(Number(((line.split(':'))[1]).trim()))
+                        var item_str = ((line.split(':'))[0]).replace(/\t/g,'').trim().replace(/ /g,'_')
+                        if (item_str.match(/_prime$/) || item_str.match(/_chassis$/) || item_str.match(/_systems$/) || item_str.match(/_neuroptics$/)) item_str += '_blueprint'
+                        for (var i=1; i<=quantity; i++) {
+                            items.push(item_str)
+                            if (item_str.match("platinum"))
+                                break
+                        }
+                        items.forEach(item => {
+                            if (receiveFlag) receivingItems.push(item)
+                            else offeringItems.push(item)
+                        })
+                    }
+                }
+            })
+            // convert trade time
+            var trade_time = new Date(lineArr[0].replace(/\t/g,'').trim()).getTime() + localeOffset
+            if (trade_time > last_trade_timestamp)
+                last_trade_timestamp = trade_time
+            gdpr_log.trades.push({
+                complete_seq: "N/A",
+                log_seq: "N/A",
+                offeringItems: offeringItems,
+                receivingItems: receivingItems,
+                status: "successful",
+                timestamp: trade_time,
+                trader: "N/A"
+            })
+        })
+    })
+    if (gdpr_log.trades.length > 0) {
+        // write to gdpr_log.json
+        fs.writeFileSync(appFolder + 'logs/gdpr_log.json',JSON.stringify(gdpr_log))
+        // deprecate EE.log trades
+        fs.readdir(appFolder + 'logs', (err,files) => {
+            if (err) emitError('Error reading files', err.stack? err.stack:err)
+            else {
+                for (const file_name of files) {
+                    if (file_name == 'gdpr_log.json') continue
+                    const logFile = JSON.parse(fs.readFileSync(appFolder + 'logs/' + file_name,'utf-8').replace(/^\uFEFF/, ''))
+                    logFile.trades.forEach((trade:any,index:number) => {
+                        trade.timestamp = String(trade.timestamp).length == 10 ? Number(trade.timestamp)*1000:Number(trade.timestamp)
+                        logFile.trades[index].timestamp = trade.timestamp
+                        if (!trade.timestamp || (trade.timestamp <= last_trade_timestamp))
+                            logFile.trades[index].deprecated = true
+                        else logFile.trades[index].deprecated = false
+                    })
+                    fs.writeFileSync(appFolder + 'logs/' + file_name,JSON.stringify(logFile))
+                }
+                mainEvent.emit('importGDPRResponse', {
+                    data: {}, 
+                    message: {
+                        title: 'IMPORT GDPR',
+                        content: `Successfully processed file. Details:\r\nTotal plat spent: ${plat_spent}p\r\nTotal plat gained: ${plat_received}p\r\nTotal trades: ${gdpr_log.trades.length}\r\nLast logged trade: ${new Date(last_trade_timestamp)}`
+                    }
+                })
+            }
+        })
+    } else {
+        mainEvent.emit('importGDPRResponse',{
+            data: {}, 
+            message: {
+            title: 'IMPORT GDPR Error',
+            content: `Some unexpected error occured`
+        }})
+    }
+})

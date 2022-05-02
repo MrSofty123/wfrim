@@ -273,7 +273,7 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
             if (trade.status == 'successful' && !trade.deprecated) {
                 try {
                     trade.offeringItems.forEach((item:string) => {
-                        item = item.toLowerCase().replace('_chassis_blueprint', '_chassis').replace('_systems_blueprint', '_systems').replace('_neuroptics_blueprint', '_neuroptics')
+                        item = item.toLowerCase().replace('_chassis_blueprint', '_chassis').replace('_systems_blueprint', '_systems').replace('_neuroptics_blueprint', '_neuroptics').replace('_wings_blueprint', '_wings').replace('_harness_blueprint', '_harness')
                         if (item.match('platinum')) {
                             // all time
                             statistics.trades.plat.spent.all_time += Number((item.split('_'))[2])
@@ -365,52 +365,75 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
             <React.Fragment>
                 <Grid container spacing={2} justifyContent="center">
                     <Grid item xs={4}>
-                        <Typography color="inherit" style={{fontSize: '32px'}}>Relics</Typography>
-                        <Typography color="inherit">Total Opened all time: {statistics.relics.opened.total.all_time}</Typography>
-                        <Typography color="inherit">Total Opened today: {statistics.relics.opened.total.today}</Typography>
-                        <Typography color="inherit">Total Opened daily avg: {statistics.relics.opened.total.daily_avg}</Typography>
-                        <Typography color="inherit">Tracked Opened all time: {statistics.relics.opened.tracked.all_time}</Typography>
-                        <Typography color="inherit">Tracked Opened today: {statistics.relics.opened.tracked.today}</Typography>
-                        <Typography color="inherit">Tracked Opened daily avg: {statistics.relics.opened.tracked.daily_avg}</Typography>
-                        <Typography color="inherit">Vaulted Opened all time: {statistics.relics.opened.vaulted.all_time}</Typography>
-                        <Typography color="inherit">Vaulted Opened today: {statistics.relics.opened.vaulted.today}</Typography>
-                        <Typography color="inherit">Vaulted Opened daily avg: {statistics.relics.opened.vaulted.daily_avg}</Typography>
-                        <Typography color="inherit">Top Relics Opened</Typography>
-                        <TableContainer sx={{ maxHeight: 350, maxWidth: 250 }}>
-                            <Table>
-                                <TableHead>
-                                <TableRow>
-                                    <TableCell>Relic</TableCell>
-                                    <TableCell align="right">Opened</TableCell>
-                                </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                {sortObject(statistics.relics.opened_distr,'opened').map((relic) => (
-                                    <TableRow
-                                    key={relic.key + '_top_opened'}
-                                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                                    >
-                                    <TableCell component="th" scope="row">
-                                        {convertUpper(relic.key.replace('_relic',''))}
-                                    </TableCell>
-                                    <TableCell align="right">{relic.value}</TableCell>
-                                    </TableRow>
-                                ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
+                        <Typography color="inherit" style={{fontSize: '32px'}}>Relics Opened</Typography>
+                        <Grid container spacing={2} justifyContent="center">
+                            <Grid item xs={4}>
+                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>All relics</Typography>
+                                <Typography color="inherit">All time: {statistics.relics.opened.total.all_time}</Typography>
+                                <Typography color="inherit">Today: {statistics.relics.opened.total.today}</Typography>
+                                <Typography color="inherit">Avg: {statistics.relics.opened.total.daily_avg}/day</Typography>
+                            </Grid>
+                            <Grid item xs={4}>
+                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Vaulted relics</Typography>
+                                <Typography color="inherit">All time: {statistics.relics.opened.vaulted.all_time}</Typography>
+                                <Typography color="inherit">Today: {statistics.relics.opened.vaulted.today}</Typography>
+                                <Typography color="inherit">Avg: {statistics.relics.opened.vaulted.daily_avg}/day</Typography>
+                            </Grid>
+                            <Grid item xs={4}>
+                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Tracked relics</Typography>
+                                <Typography color="inherit">All time: {statistics.relics.opened.tracked.all_time}</Typography>
+                                <Typography color="inherit">Today: {statistics.relics.opened.tracked.today}</Typography>
+                                <Typography color="inherit">Avg: {statistics.relics.opened.tracked.daily_avg}/day</Typography>
+                            </Grid>
+                            <Grid item xs={12}></Grid>
+                            <Grid item xs={12}>
+                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top Relics Opened</Typography>
+                                <TableContainer sx={{ maxHeight: 350, maxWidth: 250 }}>
+                                    <Table>
+                                        <TableHead>
+                                        <TableRow>
+                                            <TableCell>Relic</TableCell>
+                                            <TableCell align="right">Opened</TableCell>
+                                        </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                        {sortObject(statistics.relics.opened_distr,'opened').map((relic) => (
+                                            <TableRow
+                                            key={relic.key + '_top_opened'}
+                                            sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                            >
+                                            <TableCell component="th" scope="row">
+                                                {convertUpper(relic.key.replace('_relic',''))}
+                                            </TableCell>
+                                            <TableCell align="right">{relic.value}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Grid>
+                        </Grid>
                     </Grid>
                     <Grid item xs={8}>
                         <Typography color="inherit" style={{fontSize: '32px'}}>Trades</Typography>
-                        <Typography color="inherit">Plat gained all time: {statistics.trades.plat.gained.all_time}</Typography>
-                        <Typography color="inherit">Plat gained today: {statistics.trades.plat.gained.today}</Typography>
-                        <Typography color="inherit">Plat gained daily avg: {statistics.trades.plat.gained.daily_avg}</Typography>
-                        <Typography color="inherit">Plat spent all time: {statistics.trades.plat.spent.all_time}</Typography>
-                        <Typography color="inherit">Plat spent today: {statistics.trades.plat.spent.today}</Typography>
-                        <Typography color="inherit">Plat spent daily avg: {statistics.trades.plat.spent.daily_avg}</Typography>
                         <Grid container spacing={2} justifyContent="center">
                             <Grid item xs={4}>
-                                <Typography color="inherit">Top Items sold</Typography>
+                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Plat Earned</Typography>
+                                <Typography color="inherit">All time: {statistics.trades.plat.gained.all_time}p</Typography>
+                                <Typography color="inherit">Today: {statistics.trades.plat.gained.today}p</Typography>
+                                <Typography color="inherit">Avg: {statistics.trades.plat.gained.daily_avg}p/day</Typography>
+                            </Grid>
+                            <Grid item xs={4}>
+                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Plat Spent</Typography>
+                                <Typography color="inherit">All time: {statistics.trades.plat.spent.all_time}p</Typography>
+                                <Typography color="inherit">Today: {statistics.trades.plat.spent.today}p</Typography>
+                                <Typography color="inherit">Avg: {statistics.trades.plat.spent.daily_avg}p/day</Typography>
+                            </Grid>
+                            <Grid item xs={4}>
+                            </Grid>
+                            <Grid item xs={12}></Grid>
+                            <Grid item xs={4}>
+                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top Items sold</Typography>
                                 <TableContainer sx={{ maxHeight: 350, maxWidth: 370}}>
                                     <Table>
                                         <TableHead>
@@ -436,7 +459,7 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                                 </TableContainer>
                             </Grid>
                             <Grid item xs={4}>
-                                <Typography color="inherit">Top Items bought</Typography>
+                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top Items bought</Typography>
                                 <TableContainer sx={{ maxHeight: 350, maxWidth: 370 }}>
                                     <Table>
                                         <TableHead>
@@ -462,7 +485,7 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                                 </TableContainer>
                             </Grid>
                             <Grid item xs={4}>
-                                <Typography color="inherit">Top sets sold</Typography>
+                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top sets sold</Typography>
                                 <TableContainer sx={{ maxHeight: 350, maxWidth: 370 }}>
                                     <Table>
                                         <TableHead>
@@ -530,17 +553,20 @@ class TopBar extends React.Component<ITopBarProps,ITopBarState> {
     }
     
     componentDidMount() {
+        event.on('importGDPRResponse', (arg) => {
+            this.setState({alertOpen: true, alertTitle: arg.message.title, alertContent: arg.message.content})
+        })
     }
 
-    handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         var file_paths:Array<string> = []
-        Array.from(event.target.files as FileList).forEach(file => {
+        Array.from(e.target.files as FileList).forEach(file => {
             if (file.type != 'text/plain') {
                 this.setState({alertOpen: true, alertTitle: 'IMPORT GDPR', alertContent: 'Please only select .txt file(s)'})
                 return
             } else file_paths.push(file.path)
         })
-        importGDPR(file_paths)
+        event.emit('importGDPRRequest',file_paths)
     }
 
     alertHandleClose = () => {
@@ -595,8 +621,4 @@ function sortObject(obj:any, key:string = "") {
         })
     })
     return new_arr
-}
-
-function importGDPR(file_paths:Array<string>) {
-    console.log('importGDPR')
 }

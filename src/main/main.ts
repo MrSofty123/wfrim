@@ -165,6 +165,11 @@ mainEvent.on('statisticsFetch', function statisticsFetch(data) {
   if (!rendererReady || !mainWindow) setTimeout(statisticsFetch, 1000, data)
   else mainWindow?.webContents.send('statisticsFetch', data)
 })
+mainEvent.on('importGDPRResponse', function importGDPRResponse(data) {
+  //console.log('************************************************************call statisticsFetch******************************************************************************')
+  if (!rendererReady || !mainWindow) setTimeout(importGDPRResponse, 1000, data)
+  else mainWindow?.webContents.send('importGDPRResponse', data)
+})
 
 //autoUpdater.on('checking-for-update', () => displayAlert('update', 'Checking for update.'))
 //autoUpdater.on('update-available', () => displayAlert('update','Update available.'));
