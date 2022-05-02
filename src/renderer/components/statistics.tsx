@@ -28,15 +28,17 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    CssBaseline
+    CssBaseline,
+    Input
 } from '@mui/material';
 import {
     AddBox,
     Add,
     Remove,
-    Delete
+    Delete,
+    FileDownload
 } from '@mui/icons-material';
-import React from 'react';
+import React, { ChangeEvent } from 'react';
 import {event} from '../eventHandler'
 import lith from '../../../assets/lith.png'
 import meso from '../../../assets/meso.png'
@@ -68,7 +70,8 @@ interface Iitems_list {
         },
         relics: Array<{link: string, name: string}>,
         tags: Array<string>,
-        vault_status: string
+        vault_status: string,
+        items_in_set: Array<{url_name: string, quantity_for_set: number}>,
     }
 }
 var items_list:Iitems_list = {
@@ -83,7 +86,7 @@ event.on('itemsListFetch', (data) => {
 interface IStatisticsProps {
 }
 interface IStatisticsState {
-    update: boolean,
+    update: boolean
 }
 
 class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
@@ -146,7 +149,8 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                 },
                 items: {
                     sold: {[key: string]: number},
-                    bought: {[key: string]: number}
+                    bought: {[key: string]: number},
+                    sets_sold: {[key: string]: number},
                 }
             }
         }
@@ -192,7 +196,8 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                 },
                 items: {
                     sold: {},
-                    bought: {}
+                    bought: {},
+                    sets_sold: {}
                 }
             }
         }
@@ -268,7 +273,8 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
             if (trade.status == 'successful' && !trade.deprecated) {
                 try {
                     trade.offeringItems.forEach((item:string) => {
-                        if (item.toLowerCase().match('platinum')) {
+                        item = item.toLowerCase().replace('_chassis_blueprint', '_chassis').replace('_systems_blueprint', '_systems').replace('_neuroptics_blueprint', '_neuroptics')
+                        if (item.match('platinum')) {
                             // all time
                             statistics.trades.plat.spent.all_time += Number((item.split('_'))[2])
                             // today
@@ -280,15 +286,47 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                             }
                         }
                         // items quantity sold
-                        if (!item.toLowerCase().match('platinum')) {
-                            if (!statistics.trades.items.sold[item.toLowerCase()]) statistics.trades.items.sold[item.toLowerCase()] = 0
-                            statistics.trades.items.sold[item.toLowerCase()]++
+                        if (!item.match('platinum')) {
+                            if (!statistics.trades.items.sold[item]) statistics.trades.items.sold[item] = 0
+                            statistics.trades.items.sold[item]++
+                            // check if full set being sold
+                            if (item.match(/_blueprint$/)) {
+                                // get list of components
+                                var items_in_set:any = {}
+                                if (items_list[item]?.items_in_set.length > 0) {
+                                    items_list[item].items_in_set.forEach(component => {
+                                        if (!component.url_name.match(/_set$/)) {
+                                            items_in_set[component.url_name] = {
+                                                url_name: component.url_name,
+                                                quantity_for_set: component.quantity_for_set,
+                                                quantity_traded: 0
+                                            }
+                                        }
+                                    })
+                                }
+                                // verify all quantities
+                                trade.offeringItems.forEach((item1:string) => {
+                                    item1 = item1.toLowerCase().replace('_chassis_blueprint', '_chassis').replace('_systems_blueprint', '_systems').replace('_neuroptics_blueprint', '_neuroptics')
+                                    items_in_set[item1]? items_in_set[item1].quantity_traded++:false
+                                })
+                                var setTraded = true
+                                for (const key in items_in_set) {
+                                    if (items_in_set[key].quantity_traded != items_in_set[key].quantity_for_set)
+                                        setTraded = false
+                                }
+                                if (setTraded) {
+                                    var str = item.replace(/_blueprint$/, '_set')
+                                    if (!statistics.trades.items.sets_sold[str]) statistics.trades.items.sets_sold[str] = 0
+                                    statistics.trades.items.sets_sold[str]++
+                                }
+                            }
                         }
                     })
                 } catch (e) {}
                 try {
                     trade.receivingItems.forEach((item:string) => {
-                        if (item.toLowerCase().match('platinum')) {
+                        item = item.toLowerCase().replace('_chassis_blueprint', '_chassis').replace('_systems_blueprint', '_systems').replace('_neuroptics_blueprint', '_neuroptics')
+                        if (item.match('platinum')) {
                             // all time
                             statistics.trades.plat.gained.all_time += Number((item.split('_'))[2])
                             // today
@@ -300,15 +338,15 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                             }
                         }
                         // items quantity bought
-                        if (!item.toLowerCase().match('platinum')) {
-                            if (!statistics.trades.items.bought[item.toLowerCase()]) statistics.trades.items.bought[item.toLowerCase()] = 0
-                            statistics.trades.items.bought[item.toLowerCase()]++
+                        if (!item.match('platinum')) {
+                            if (!statistics.trades.items.bought[item]) statistics.trades.items.bought[item] = 0
+                            statistics.trades.items.bought[item]++
                         }
                     })
                 } catch (e) {}
             }
         })
-        //console.log(JSON.stringify(statistics.trades))
+        //console.log(JSON.stringify(statistics.trades.items.sets_sold))
 
         // Plat Spent - daily_avg
         var avg = 0
@@ -326,7 +364,7 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
         return (
             <React.Fragment>
                 <Grid container spacing={2} justifyContent="center">
-                    <Grid item xs={6}>
+                    <Grid item xs={4}>
                         <Typography color="inherit" style={{fontSize: '32px'}}>Relics</Typography>
                         <Typography color="inherit">Total Opened all time: {statistics.relics.opened.total.all_time}</Typography>
                         <Typography color="inherit">Total Opened today: {statistics.relics.opened.total.today}</Typography>
@@ -362,8 +400,8 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                             </Table>
                         </TableContainer>
                     </Grid>
-                    <Grid item xs={6}>
-                        <Typography color="inherit" style={{fontSize: '32px'}}>Platinum</Typography>
+                    <Grid item xs={8}>
+                        <Typography color="inherit" style={{fontSize: '32px'}}>Trades</Typography>
                         <Typography color="inherit">Plat gained all time: {statistics.trades.plat.gained.all_time}</Typography>
                         <Typography color="inherit">Plat gained today: {statistics.trades.plat.gained.today}</Typography>
                         <Typography color="inherit">Plat gained daily avg: {statistics.trades.plat.gained.daily_avg}</Typography>
@@ -371,7 +409,7 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                         <Typography color="inherit">Plat spent today: {statistics.trades.plat.spent.today}</Typography>
                         <Typography color="inherit">Plat spent daily avg: {statistics.trades.plat.spent.daily_avg}</Typography>
                         <Grid container spacing={2} justifyContent="center">
-                            <Grid item xs={6}>
+                            <Grid item xs={4}>
                                 <Typography color="inherit">Top Items sold</Typography>
                                 <TableContainer sx={{ maxHeight: 350, maxWidth: 370}}>
                                     <Table>
@@ -397,7 +435,7 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                                     </Table>
                                 </TableContainer>
                             </Grid>
-                            <Grid item xs={6}>
+                            <Grid item xs={4}>
                                 <Typography color="inherit">Top Items bought</Typography>
                                 <TableContainer sx={{ maxHeight: 350, maxWidth: 370 }}>
                                     <Table>
@@ -423,6 +461,32 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                                     </Table>
                                 </TableContainer>
                             </Grid>
+                            <Grid item xs={4}>
+                                <Typography color="inherit">Top sets sold</Typography>
+                                <TableContainer sx={{ maxHeight: 350, maxWidth: 370 }}>
+                                    <Table>
+                                        <TableHead>
+                                        <TableRow>
+                                            <TableCell>Set</TableCell>
+                                            <TableCell align="right">Quantity</TableCell>
+                                        </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                        {sortObject(statistics.trades.items.sets_sold).map((item:any) => (
+                                            <TableRow
+                                            key={item.key + '_top_sets_sold'}
+                                            sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                            >
+                                            <TableCell component="th" scope="row">
+                                                {convertUpper(item.key)}
+                                            </TableCell>
+                                            <TableCell align="right">{item.value}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Grid>
                         </Grid>
                     </Grid>
                 </Grid>
@@ -432,14 +496,84 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
 
     render() {
         return (
-            <Box style={{maxHeight: "100vh", overflow: 'auto'}}>
-                <CssBaseline />
-                {this.state.update}
-                <this.computeStats />
-            </Box>
+            <Grid container maxHeight={'90vh'} overflow='auto'>
+                <Grid item xs={12} style={{display: 'flex', justifyContent:'flex-end'}}>
+                    <TopBar/>
+                </Grid>
+                <Grid item xs={12}>
+                    <CssBaseline />
+                    {this.state.update}
+                    <this.computeStats />
+                </Grid>
+            </Grid>
         )
     }
 }
+
+
+interface ITopBarProps {
+}
+interface ITopBarState {
+    alertOpen: boolean
+    alertTitle: string,
+    alertContent: string
+}
+
+class TopBar extends React.Component<ITopBarProps,ITopBarState> {
+    constructor(props:any) {
+      super(props);
+      this.state = {
+        alertOpen: false,
+        alertTitle: '',
+        alertContent: ''
+      };
+    }
+    
+    componentDidMount() {
+    }
+
+    handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        var file_paths:Array<string> = []
+        Array.from(event.target.files as FileList).forEach(file => {
+            if (file.type != 'text/plain') {
+                this.setState({alertOpen: true, alertTitle: 'IMPORT GDPR', alertContent: 'Please only select .txt file(s)'})
+                return
+            } else file_paths.push(file.path)
+        })
+        importGDPR(file_paths)
+    }
+
+    alertHandleClose = () => {
+        this.setState({alertOpen: false, alertTitle: '', alertContent: ''})
+    }
+
+    render() {
+        return (
+            <React.Fragment>
+                <label htmlFor="gdpr-file">
+                    <Input style={{display: 'none'}} id="gdpr-file" type="file" inputProps={{accept: ".txt", multiple: true}} onChange={this.handleFileChange}/>
+                    <Button variant="contained" startIcon={<FileDownload />} component="span">
+                        Import GDPR
+                    </Button>
+                </label>
+                <Dialog open={this.state.alertOpen} onClose={this.alertHandleClose}>
+                    <DialogTitle>
+                    {this.state.alertTitle}
+                    </DialogTitle>
+                    <DialogContent>
+                    <DialogContentText>
+                        {this.state.alertContent}
+                    </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={this.alertHandleClose}>Ok</Button>
+                    </DialogActions>
+                </Dialog>
+            </React.Fragment>
+        )
+    }
+}
+
 export {Statistics}
 
 function getRelicUrl(str:string) {
@@ -461,4 +595,8 @@ function sortObject(obj:any, key:string = "") {
         })
     })
     return new_arr
+}
+
+function importGDPR(file_paths:Array<string>) {
+    console.log('importGDPR')
 }

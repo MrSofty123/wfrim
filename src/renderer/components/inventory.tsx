@@ -100,7 +100,6 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
     
     componentDidMount() {
         event.on('relicDBFetch', (data) => {
-            console.log('renderer: relicDBFetch')
             relicDB = []
             relicDB = typeof data == 'object' ? data:JSON.parse(data as string)
             this.setState({relicDB: []}, () => this.setState({relicDB: relicDB}));
@@ -442,14 +441,12 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
                 <Grid item xs={6}>
                     <Button variant="outlined" onClick={this.handleOpen} startIcon={<AddBox />}>Add Relic</Button>
                 </Grid>
-                <Grid item xs={6}>
-                    <div style={{display: 'flex', justifyContent:'flex-end'}}>
-                        <TextField variant="standard" id="standard-helperText" label="Search relic" style={{marginRight: "30px",marginBottom:"25px"}} onChange={this.handleChangeSearchRelic} onKeyUp={this.handleSearchRelicKeyUp}/>
-                        <FormControlLabel control={<Checkbox defaultChecked={showTiers.lith ? true:false} onChange={this.handleCheckboxChange} id="lith"/>} label="Lith" />
-                        <FormControlLabel control={<Checkbox  defaultChecked={showTiers.meso ? true:false} onChange={this.handleCheckboxChange} id="meso"/>} label="Meso" />
-                        <FormControlLabel control={<Checkbox defaultChecked={showTiers.neo ? true:false} onChange={this.handleCheckboxChange} id="neo"/>} label="Neo" />
-                        <FormControlLabel control={<Checkbox defaultChecked={showTiers.axi ? true:false} onChange={this.handleCheckboxChange} id="axi"/>} label="Axi" />
-                    </div>
+                <Grid item xs={6} style={{display: 'flex', justifyContent:'flex-end'}}>
+                    <TextField variant="standard" id="standard-helperText" label="Search relic" style={{marginRight: "30px",marginBottom:"25px"}} onChange={this.handleChangeSearchRelic} onKeyUp={this.handleSearchRelicKeyUp}/>
+                    <FormControlLabel control={<Checkbox defaultChecked={showTiers.lith ? true:false} onChange={this.handleCheckboxChange} id="lith"/>} label="Lith" />
+                    <FormControlLabel control={<Checkbox  defaultChecked={showTiers.meso ? true:false} onChange={this.handleCheckboxChange} id="meso"/>} label="Meso" />
+                    <FormControlLabel control={<Checkbox defaultChecked={showTiers.neo ? true:false} onChange={this.handleCheckboxChange} id="neo"/>} label="Neo" />
+                    <FormControlLabel control={<Checkbox defaultChecked={showTiers.axi ? true:false} onChange={this.handleCheckboxChange} id="axi"/>} label="Axi" />
                 </Grid>
             </Grid>
             <Dialog open={this.state.open} onClose={this.handleClose} fullWidth={true} maxWidth={"sm"}>

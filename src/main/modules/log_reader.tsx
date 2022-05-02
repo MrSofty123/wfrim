@@ -14,23 +14,11 @@ fs.watchFile(eeLogPath,(currStat,prevStat) => {
         logRead()
     }
 })
-// watch logs files
-fs.readdir(appFolder + 'logs', (err,files) => {
-    if (err) emitError('Error getting files', err.stack)
-    else {
-        for (const filename of files) {
-            console.log('Watching file: ' + appFolder + 'logs/' + filename)
-            fs.watchFile(appFolder + 'logs/' + filename,(currStat,prevStat) => {
-                if (currStat.mtime != prevStat.mtime) {
-                    console.log('file changed: ', appFolder + 'logs/' + filename)
-                    getStatistics()
-                }
-            })
-        }
-    }
-})
+watchLogs()
 getStatistics()
+logRead()
 var combineFiles = false
+var lastReadLog:number = -1
 
 function logRead () {
     // check filesize
@@ -54,6 +42,7 @@ function logRead () {
                     var logfile:any = typeof data == 'object' ? data:JSON.parse((data as string).replace(/^\uFEFF/, ''))
                     var logChanged = false
                     for (const [index1,val] of logArr.entries()) {
+                        if (index1 <= lastReadLog) continue
                         var eventHandled:boolean = false
                         var tradeSuccess:boolean = false
                         var offeringItems:Array<string> = []
@@ -74,6 +63,10 @@ function logRead () {
                             logChanged = true
                             console.log('found trade at '+ log_seq)
                             for (var i=index1+1; i<=i+200; i++) {
+                                if (!logArr[i]) {   // not logged yet
+                                    tradeSuccess = false
+                                    break
+                                }
                                 const temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
                                 if (temp.match('Script Info: Dialog.lua: Dialog::CreateOkdescription=The trade was successful!, leftItem=\/Menu\/Confirm_Item_Ok')) {
                                     //console.log('hiiii')
@@ -82,12 +75,15 @@ function logRead () {
                                     break
                                 }
                             }
-                            if (!tradeSuccess)
-                                continue
+                            if (!tradeSuccess) continue
                             console.log('trade was successful ' + complete_seq)
                             // Trade is successful. Retrieve trade detail
                             var allItems = []
                             for (var i=index1+1; i<=i+200; i++) {
+                                if (!logArr[i]) {   // not logged yet
+                                    tradeSuccess = false
+                                    break
+                                }
                                 const temp = logArr[i].trim()
                                 if (temp.match('leftItem=/Menu/Confirm_Item_Ok, rightItem=/Menu/Confirm_Item_Cancel'))
                                 {
@@ -98,6 +94,7 @@ function logRead () {
                                 if (temp != '')
                                     allItems.push(temp)
                             }
+                            if (!tradeSuccess) continue
                             var receiveFlag = 0
                             allItems.forEach(item => {
                                 if (item.match('and will receive from')) {
@@ -113,6 +110,7 @@ function logRead () {
 
                             logfile.trades.push({log_seq: log_seq, complete_seq: complete_seq, trader: trader, offeringItems: offeringItems, receivingItems: receivingItems, status: "successful", timestamp: new Date().getTime()})
                             wfTradeHandler(offeringItems,receivingItems)
+                            lastReadLog = index1
                             continue
                             //wfTradeHandler(log_seq,complete_seq,trader,offeringItems,receivingItems,"successful")
                             //gosub filterRelics
@@ -132,9 +130,11 @@ function logRead () {
                                 }
                             }
                             if (eventHandled) continue
-                            logChanged = true
-                            console.log('found relic squad at '+ log_seq)
                             for (var i=index1+1; i<=i+20; i++) {    //Confirmation must be in next 20 lines
+                                if (!logArr[i]) {   // not logged yet
+                                    equipSuccess = false
+                                    break
+                                }
                                 const temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
                                 if (temp.match('Script Info: Dialog.lua: Dialog::SendResult4')) {
                                     equipSuccess = true
@@ -143,16 +143,18 @@ function logRead () {
                                 }
                             }
                             if (!equipSuccess) continue
+                            logChanged = true
+                            console.log('found relic squad at '+ log_seq)
                             // Check if any other unhandled event(s) before and discard
                             for (const [index,val] of logfile.mission_initialize.entries()) {
                                 if (val.complete_seq == "N/A Yet")
-                                    logfile.mission_initialize.splice(index,1)
+                                    logfile.mission_initialize[index].complete_seq = 'discarded'
                             }
                             // Retrieve relic being equipped
                             const temp = line.toLowerCase().split(' ')
                             relicEquipped = temp[11] + "_" + temp[12] + "_" + temp[13]
                             // Commit event to file
-                            logfile.mission_initialize.push({log_seq: log_seq, complete_seq: complete_seq, relicEquipped: relicEquipped, status: "unsuccessful", timestamp: new Date().getTime()})
+                            logfile.mission_initialize.push({log_seq: log_seq, complete_seq: complete_seq, relicEquipped: relicEquipped, status: "unsuccessful", timestamp: new Date().getTime(), complete_timestamp: -1})
                             continue
                         }
                         eventHandled = false
@@ -172,11 +174,11 @@ function logRead () {
                             console.log('found gotRewards at '+ log_seq)
                             // Find the recent unsuccessful event
                             for (const [index,mission] of logfile.mission_initialize.entries()) {
-                                if (mission.complete_seq=="N/A Yet") {       // Event already handled
+                                if (mission.complete_seq=="N/A Yet") {      
                                     logfile.mission_initialize[index].complete_seq = complete_seq
+                                    logfile.mission_initialize[index].complete_timestamp = new Date().getTime()
                                     logfile.mission_initialize[index].status = "successful"
                                     // Retrieve info for event handle
-                                    log_seq = logfile.mission_initialize[index].log_seq
                                     relicEquipped = logfile.mission_initialize[index].relicEquipped
                                     break
                                 }
@@ -184,6 +186,7 @@ function logRead () {
                             wfMissionHandler(relicEquipped)
                             //gosub filterRelics
                             //SetTimer, updateWFLoggerInfo, -2000
+                            lastReadLog = index1
                             continue
                         }
                     }
@@ -309,7 +312,10 @@ function getStatistics() {
         else {
             var rawStatistics = {mission_initialize: [], trades: []}
             for (const filename of files) {
-                const fileContent = JSON.parse((fs.readFileSync(appFolder + 'logs/' + filename,'utf-8')).replace(/^\uFEFF/, ''))
+                var fileContent;
+                try {
+                    fileContent = JSON.parse((fs.readFileSync(appFolder + 'logs/' + filename,'utf-8')).replace(/^\uFEFF/, ''))
+                } catch (e:any) {emitError('Error reading file ' + appFolder + 'logs/' + filename, e.stack? e.stack:e)}
                 try {
                     fileContent.mission_initialize.forEach((mission:object) => (rawStatistics.mission_initialize as Array<object>).push(mission))
                 } catch (e) {}
@@ -336,7 +342,11 @@ async function getFile(filepath:string) {
                 const obj = {mission_initialize: [], trades: []}
                 fs.writeFile(filepath, JSON.stringify(obj), (err) => {
                     if (err) reject(err.stack)
-                    else resolve(obj)
+                    else {
+                        lastReadLog = -1
+                        watchLogs()
+                        resolve(obj)
+                    }
                 });
             } else {
                 fs.readFile(filepath,'utf-8',(err,data) => {
@@ -358,4 +368,22 @@ function ensureDirectoryExistence(filePath:string) {
 
 function convertUpper(str:string) {
     return str.replace(/_/g, " ").replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase())
+}
+
+function watchLogs() {
+    // watch logs files
+    fs.readdir(appFolder + 'logs', (err,files) => {
+        if (err) emitError('Error getting files', err.stack)
+        else {
+            for (const filename of files) {
+                console.log('Watching file: ' + appFolder + 'logs/' + filename)
+                fs.watchFile(appFolder + 'logs/' + filename,(currStat,prevStat) => {
+                    if (currStat.mtime != prevStat.mtime) {
+                        console.log('file changed: ', appFolder + 'logs/' + filename)
+                        getStatistics()
+                    }
+                })
+            }
+        }
+    })
 }
