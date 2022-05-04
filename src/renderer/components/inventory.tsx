@@ -114,6 +114,7 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
     }
 
     componentDidUpdate() {
+        // NOTE THIS WILL BE LOGGED TWICE BECAUSE OF ARRAY STATE OF RELICSDB
         console.log('*************updating inventory*******************')
     }
 

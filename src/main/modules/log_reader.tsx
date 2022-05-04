@@ -1,5 +1,5 @@
 import {mainEvent} from '../eventHandler'
-import fs from 'fs'
+import fs, { PathOrFileDescriptor } from 'fs'
 import Os from 'os'
 import path from 'path'
 import { ipcMain } from 'electron';
@@ -9,6 +9,13 @@ const eeLogPath = Os.homedir() + '/AppData/Local/Warframe/EE.log'
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
 
 var eeLogContents = ''
+/*******************timerVars********************/
+var getStatisticsTimer:ReturnType<typeof setTimeout>;
+var logReadTimer:ReturnType<typeof setTimeout>;
+getStatisticsTimer = setTimeout(getStatistics, 500)
+logReadTimer = setTimeout(logRead, 500)
+/***********************************************/
+
 // watch ee.log
 //console.log('Watching file: ' + eeLogPath)
 /*
@@ -23,29 +30,60 @@ const eeLogWatcher = fs.watch(eeLogPath,(event,filename) => {
 /************************* Fast reader for EElog ***********************/
 const byte_size = 100000
 var readbytes = 0
-var file:any
+var eeLogFD:any
+var logPrefix:string = ''
 
-fs.open(eeLogPath, 'r', function(err, fd) { file = fd; readsome(); });
-
-function readsome() {
-    var stats = fs.fstatSync(file); // yes sometimes async does not make sense!
-    if(stats.size<readbytes+1) {
-        setTimeout(readsome, 3000);
-    }
-    else {
-        fs.read(file, new Buffer(byte_size), 0, byte_size, readbytes, processsome);
-    }
+getEELogFD()
+function getEELogFD() {
+    fs.open(eeLogPath, 'r', function(err, fd) { 
+        eeLogFD = fd;
+        readsome(); 
+    });
 }
 
-var logReadTimer:ReturnType<typeof setTimeout>;
+function readsome() {
+    var stats = fs.fstatSync(eeLogFD); // yes sometimes async does not make sense!
+    if(stats.size<readbytes+1) {
+        if (new Date().getTime() - new Date(stats.mtime).getTime() > 60000) { // no changes in past 2m look for new file stream
+            console.log('eeLog descripter possibly closed. watch for new file change')
+            // reset vars states
+            fs.close(eeLogFD)
+            logPrefix = ''
+            eeLogContents = ''
+            readbytes = 0
+            const eeLogWatcher = fs.watch(eeLogPath,(event,filename) => {
+                if (event == 'change') {
+                    console.log('eeLog has changed. Opening new descripter')
+                    getEELogFD()
+                    eeLogWatcher.close()
+                }
+            })
+        } else {
+            eeLogContents = eeLogContents.substring(eeLogContents.length - 100000) // strip old data from var
+            setTimeout(readsome, 3000);
+        }
+    } else fs.read(eeLogFD, new Buffer(byte_size), 0, byte_size, readbytes, processsome);
+}
+
 function processsome(err:any, bytecount:number, buff:any) {
     console.log('Read', bytecount, 'and will process it now.');
 
+    if (logPrefix == '') { // update logPrefix
+        const logArr = eeLogContents.split('\r\n')
+        for (const [index,val] of logArr.entries()) {
+            const line = val.replace(/\[/g, '').replace(/]/g, '')
+            if (line.match(`Diag: Current time:`)) {
+                const temp = line.split('UTC:')
+                logPrefix = temp[1].replace(/ /g,'').replace(/\:/g,'')
+                break
+            }
+        }
+    }
     // Here we will process our incoming data:
         // Do whatever you need. Just be careful about not using beyond the bytecount in buff.
         //console.log(buff.toString('utf-8', 0, bytecount));
         eeLogContents += buff.toString('utf-8', 0, bytecount)
-        console.log(eeLogContents.length)
+        console.log('eeLogContents: ' + eeLogContents.length)
     // So we continue reading from where we left:
     readbytes+=bytecount;
     process.nextTick(readsome);
@@ -57,7 +95,8 @@ function processsome(err:any, bytecount:number, buff:any) {
 const logsWatcher = fs.watch(appFolder + 'logs',(event,filename) => {
     if (event == 'change') {
         console.log('file changed: ', appFolder + 'logs/' + filename)
-        getStatistics()
+        clearTimeout(getStatisticsTimer)
+        getStatisticsTimer = setTimeout(getStatistics, 500)
     }
 })
 mainEvent.on('closeFileWatchers', () => {
@@ -86,37 +125,21 @@ function watchLogs() {
 }
 */
 //watchLogs()
-getStatistics()
-logRead()
 var combineFiles = false
-var lastReadLog:number = -1
+var logPrefix = ''
 
 function logRead () {
-    // check filesize
-    var logPrefix = ''
-    const logArr = eeLogContents.split('\r\n')  // eeLogContents is a global variable, ee.log contents are continuously logged in here, see above
-    for (const [index,val] of logArr.entries()) {
-        const line = val.replace(/\[/g, '').replace(/]/g, '')
-        if (line.match(`Diag: Current time:`)) {
-            const temp = line.split('UTC:')
-            logPrefix = temp[1].replace(/ /g,'').replace(/\:/g,'')
-            break
-        }
-    }
     if (logPrefix == '') { //current time not written yet
         console.log('logPrefix not written yet')
         return
     }
-    if (!combineFiles) combineFilesFunc(logPrefix)
+    if (!combineFiles) combineFilesFunc()
     getFile(appFolder + `logs/${logPrefix}_log.json`).then(data => {
         //console.log(JSON.stringify(data))
         var logfile:any = typeof data == 'object' ? data:JSON.parse((data as string).replace(/^\uFEFF/, ''))
+        const logArr = eeLogContents.split('\r\n')  // eeLogContents is a global variable, ee.log contents are continuously logged in here, see above
         var logChanged = false
-        var doNotStrip = false
         for (const [index1,val] of logArr.entries()) {
-            if (index1 <= lastReadLog) {
-                continue
-            }
             var eventHandled:boolean = false
             var tradeSuccess:boolean = false
             var offeringItems:Array<string> = []
@@ -133,16 +156,12 @@ function logRead () {
                         break
                     }
                 }
-                if (eventHandled) {
-                    lastReadLog = index1
-                    continue
-                }
+                if (eventHandled) continue
                 logChanged = true
                 console.log('found trade at '+ log_seq)
                 for (var i=index1+1; i<=i+200; i++) {
                     if (!logArr[i]) {   // not logged yet
                         tradeSuccess = false
-                        doNotStrip = true
                         break
                     }
                     const temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
@@ -159,7 +178,6 @@ function logRead () {
                 for (var i=index1+1; i<=i+200; i++) {
                     if (!logArr[i]) {   // not logged yet
                         tradeSuccess = false
-                        doNotStrip = true
                         break
                     }
                     const temp = logArr[i].trim()
@@ -206,14 +224,10 @@ function logRead () {
                         break
                     }
                 }
-                if (eventHandled) {
-                    lastReadLog = index1
-                    continue
-                }
+                if (eventHandled) continue
                 for (var i=index1+1; i<=i+20; i++) {    //Confirmation must be in next 20 lines
                     if (!logArr[i]) {   // not logged yet
                         equipSuccess = false
-                        doNotStrip = true
                         break
                     }
                     const temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
@@ -250,10 +264,7 @@ function logRead () {
                         break
                     }
                 }
-                if (eventHandled) {
-                    lastReadLog = index1
-                    continue
-                }
+                if (eventHandled) continue
                 logChanged = true
                 console.log('found gotRewards at '+ log_seq)
                 // Find the recent unsuccessful event
@@ -282,7 +293,7 @@ function logRead () {
     }).catch(err => {emitError('error getting log file ' + appFolder + `logs/${logPrefix}_log.json`, err.stack? err.stack:err)})
 }
 
-function combineFilesFunc(logPrefix:string) {
+function combineFilesFunc() {
     fs.readdir(appFolder + 'logs', (err,files) => {
         if (err) emitError('Error getting dir files', err.stack)
         else {
@@ -423,24 +434,10 @@ function emitError(title:string,err:any) {
 async function getFile(filepath:string) {
     return new Promise((resolve,reject) => {
         ensureDirectoryExistence(filepath)
-        fs.open(filepath,'r',function(notexists, f) {
-            if (notexists) {
-                const obj = {mission_initialize: [], trades: []}
-                fs.writeFile(filepath, JSON.stringify(obj), (err) => {
-                    if (err) reject(err.stack)
-                    else {
-                        lastReadLog = -1
-                        //watchLogs()
-                        resolve(obj)
-                    }
-                });
-            } else {
-                fs.readFile(filepath,'utf-8',(err,data) => {
-                    if (err) reject(err.stack)
-                    else resolve(JSON.parse(data.replace(/^\uFEFF/, '')))
-                })
-            }
-        });
+        var data = {mission_initialize: [], trades: []}
+        if (!fs.existsSync(filepath)) fs.writeFileSync(filepath,JSON.stringify(data))
+        else data = JSON.parse((fs.readFileSync(filepath,'utf-8')).replace(/^\uFEFF/, ''))
+        resolve(data)
     })
 }
 

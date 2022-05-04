@@ -25,41 +25,29 @@ const config_default:Iconfig = {
 }
 var config:Iconfig= config_default
 
-var filepath = appFolder + 'config.json'
-
 async function getConfig() {
     return new Promise((resolve,reject) => {
-        fs.open(filepath,'r',function(notexists, f) {
-            if (notexists) {
+        fs.readFile(appFolder + 'config.json','utf8',(err,data) => {
+            if (err) {
+                emitError(`Error reading file ${appFolder + 'config.json'}`,err)
                 config = config_default;
-                fs.writeFile( filepath, JSON.stringify(config_default), (err) => {
-                    if (err) emitError(`Error creating directory ${filepath}`,err)
-                    resolve('gotConfig')
-                });
             } else {
-                fs.readFile(filepath,'utf8',(err,data) => {
-                    if (err) {
-                        emitError(`Error reading file ${filepath}`,err)
-                        config = config_default;
-                    } else {
-                        config = JSON.parse(data)
-                        var writeFile = false
-                        for (const prop in config_default) {
-                            if (!config.hasOwnProperty(prop)) {
-                                (config[prop as keyof Iconfig] as any) = config_default[prop as keyof Iconfig] as any;
-                                writeFile = true
-                            }
-                        }
-                        if (writeFile) {
-                            fs.writeFile( filepath, JSON.stringify(config), (err) => {
-                                if (err) emitError(`Error creating directory ${filepath}`,err)
-                            });
-                        }
+                config = JSON.parse(data)
+                var writeFile = false
+                for (const prop in config_default) {
+                    if (!config.hasOwnProperty(prop)) {
+                        (config[prop as keyof Iconfig] as any) = config_default[prop as keyof Iconfig] as any;
+                        writeFile = true
                     }
-                    resolve('gotConfig')
-                })
+                }
+                if (writeFile) {
+                    fs.writeFile( appFolder + 'config.json', JSON.stringify(config), (err) => {
+                        if (err) emitError(`Error creating directory ${appFolder + 'config.json'}`,err)
+                    });
+                }
             }
-        });
+            resolve('gotConfig')
+        })
     })
 }
 
@@ -67,12 +55,13 @@ ipcMain.on('postConfig', (event,data) => {
     if (typeof data == 'string')
         data = JSON.parse(data)
     config = data
-    fs.writeFile(filepath,JSON.stringify(config), (err) => {
-        if (err) emitError(`Error saving changes ${filepath}`,err)
+    fs.writeFile(appFolder + 'config.json',JSON.stringify(config), (err) => {
+        if (err) emitError(`Error saving changes ${appFolder + 'config.json'}`,err)
     })
     mainEvent.emit('configFetch',config)
 })
 //
+
 getConfig().then(() => {mainEvent.emit('configFetch',config)}).catch(err => mainEvent.emit('error',{title: 'Error in getConfig()', text: JSON.stringify(err.stack)}))
 
 function emitError(title:string,err:any) {
