@@ -106,6 +106,15 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
         })
     }
 
+    componentWillUnmount() {
+        console.log('*************unmounting statistics*******************')
+    }
+
+    componentDidUpdate() {
+        console.log('*************updating statistics*******************')
+    }
+
+
     computeStats = () => {
         interface Istatistics {
             relics: {
@@ -600,7 +609,6 @@ class TopBar extends React.Component<ITopBarProps,ITopBarState> {
     }
 }
 
-export {Statistics}
 
 function getRelicUrl(str:string) {
     str = str.toLowerCase().replace(/ /g,'_')
@@ -622,3 +630,5 @@ function sortObject(obj:any, key:string = "") {
     })
     return new_arr
 }
+
+export default React.memo(Statistics)

@@ -3,9 +3,9 @@ import React from 'react';
 import './App.css';
 import SwipeableViews from 'react-swipeable-views';
 import {Tabs, Tab, Box, Typography, useTheme, AppBar, ThemeProvider, createTheme} from '@mui/material';
-import {Inventory} from './components/inventory';
-import {Settings} from './components/settings';
-import {Statistics} from './components/statistics';
+import Inventory from './components/inventory';
+import Settings from './components/settings';
+import Statistics from './components/statistics';
 
 const darkTheme = createTheme({
   palette: {
@@ -131,7 +131,7 @@ function FullWidthTabs() {
         <Tabs
           value={value}
           onChange={handleChange}
-          indicatorColor="secondary"
+          indicatorColor="primary"
           textColor="inherit"
           variant="fullWidth"
           aria-label="full width tabs example"
@@ -142,24 +142,19 @@ function FullWidthTabs() {
           <Tab label="Settings" {...a11yProps(3)} />
         </Tabs>
       </AppBar>
-      <SwipeableViews
-        axis={theme.direction === 'rtl' ? 'x-reverse' : 'x'}
-        index={value}
-        onChangeIndex={handleChangeIndex}
-      >
-        <TabPanel value={value} index={0} dir={theme.direction}>
+
+          <div hidden={value !== 0} style={{overflowY:'scroll',maxHeight:"93%",padding:'10px'}}>
           <Inventory/>
-        </TabPanel>
-        <TabPanel value={value} index={1} dir={theme.direction}>
-          <Typography variant="body1">Hosting</Typography>
-        </TabPanel>
-        <TabPanel value={value} index={2} dir={theme.direction}>
+          </div>
+          <div hidden={value !== 1} style={{overflowY:'scroll',maxHeight:"93%",padding:'10px'}}>
+          Hosting
+          </div>
+          <div hidden={value !== 2} style={{overflowY:'scroll',maxHeight:"93%",padding:'10px'}}>
           <Statistics/>
-        </TabPanel>
-        <TabPanel value={value} index={3} dir={theme.direction}>
-          <Settings/>
-        </TabPanel>
-      </SwipeableViews>
+          </div>
+          <div hidden={value !== 3} style={{overflowY:'scroll',maxHeight:"93%",padding:'10px'}}>
+            <Settings/>
+          </div>
     </Box>
   );
 }

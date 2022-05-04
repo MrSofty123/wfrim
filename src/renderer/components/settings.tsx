@@ -41,8 +41,9 @@ import {convertUpper,dynamicSort} from './extras'
 import {config} from './config'
 import { Event } from 'electron';
 
-export {Settings}
 
+interface ISettingsProps {
+}
 interface ISettingsState {
     update: boolean,
     inv_upths_val: number,
@@ -52,9 +53,6 @@ interface ISettingsState {
     alertOpen: boolean,
     alertTitle: string,
     alertContent: string
-}
-
-interface ISettingsProps {
 }
 
 class Settings extends React.Component<ISettingsProps,ISettingsState> {
@@ -79,6 +77,11 @@ class Settings extends React.Component<ISettingsProps,ISettingsState> {
         event.on('importSRBResponse', (arg) => {
             this.setState({alertOpen: true, alertTitle: arg.message.title, alertContent: arg.message.content})
         })
+    }
+
+
+    componentDidUpdate() {
+        console.log('*************updating settings*******************')
     }
 
     handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,3 +250,5 @@ class Settings extends React.Component<ISettingsProps,ISettingsState> {
         )
     }
 }
+
+export default React.memo(Settings)

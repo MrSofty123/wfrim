@@ -7,14 +7,53 @@ import { ipcMain } from 'electron';
 
 const eeLogPath = Os.homedir() + '/AppData/Local/Warframe/EE.log'
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
+
+var eeLogContents = ''
 // watch ee.log
 //console.log('Watching file: ' + eeLogPath)
+/*
 const eeLogWatcher = fs.watch(eeLogPath,(event,filename) => {
     if (event == 'change') {
         console.log('file changed: ', eeLogPath)
         logRead()
     }
 })
+*/
+
+/************************* Fast reader for EElog ***********************/
+const byte_size = 100000
+var readbytes = 0
+var file:any
+
+fs.open(eeLogPath, 'r', function(err, fd) { file = fd; readsome(); });
+
+function readsome() {
+    var stats = fs.fstatSync(file); // yes sometimes async does not make sense!
+    if(stats.size<readbytes+1) {
+        setTimeout(readsome, 3000);
+    }
+    else {
+        fs.read(file, new Buffer(byte_size), 0, byte_size, readbytes, processsome);
+    }
+}
+
+var logReadTimer:ReturnType<typeof setTimeout>;
+function processsome(err:any, bytecount:number, buff:any) {
+    console.log('Read', bytecount, 'and will process it now.');
+
+    // Here we will process our incoming data:
+        // Do whatever you need. Just be careful about not using beyond the bytecount in buff.
+        //console.log(buff.toString('utf-8', 0, bytecount));
+        eeLogContents += buff.toString('utf-8', 0, bytecount)
+        console.log(eeLogContents.length)
+    // So we continue reading from where we left:
+    readbytes+=bytecount;
+    process.nextTick(readsome);
+    clearTimeout(logReadTimer)
+    logReadTimer = setTimeout(logRead, 500);
+}
+/************************************************/
+
 const logsWatcher = fs.watch(appFolder + 'logs',(event,filename) => {
     if (event == 'change') {
         console.log('file changed: ', appFolder + 'logs/' + filename)
@@ -22,8 +61,8 @@ const logsWatcher = fs.watch(appFolder + 'logs',(event,filename) => {
     }
 })
 mainEvent.on('closeFileWatchers', () => {
-    console.log('Closing file watcher: eeLogWatcher')
-    eeLogWatcher.close()
+    //console.log('Closing file watcher: eeLogWatcher')
+    //eeLogWatcher.close()
     console.log('Closing file watcher: logsWatcher')
     logsWatcher.close()
 })
@@ -54,183 +93,193 @@ var lastReadLog:number = -1
 
 function logRead () {
     // check filesize
-        fs.readFile(eeLogPath,'utf-8',(err,data) => {
-            if (err) emitError('Error reading' + eeLogPath, err.stack)
-            else {
-                var logPrefix = ''
-                const logArr = data.split('\r\n')
-                for (const [index,val] of logArr.entries()) {
-                    const line = val.replace(/\[/g, '').replace(/]/g, '')
-                    if (line.match(`Diag: Current time:`)) {
-                        const temp = line.split('UTC:')
-                        logPrefix = temp[1].replace(/ /g,'').replace(/\:/g,'')
+    var logPrefix = ''
+    const logArr = eeLogContents.split('\r\n')  // eeLogContents is a global variable, ee.log contents are continuously logged in here, see above
+    for (const [index,val] of logArr.entries()) {
+        const line = val.replace(/\[/g, '').replace(/]/g, '')
+        if (line.match(`Diag: Current time:`)) {
+            const temp = line.split('UTC:')
+            logPrefix = temp[1].replace(/ /g,'').replace(/\:/g,'')
+            break
+        }
+    }
+    if (logPrefix == '') { //current time not written yet
+        console.log('logPrefix not written yet')
+        return
+    }
+    if (!combineFiles) combineFilesFunc(logPrefix)
+    getFile(appFolder + `logs/${logPrefix}_log.json`).then(data => {
+        //console.log(JSON.stringify(data))
+        var logfile:any = typeof data == 'object' ? data:JSON.parse((data as string).replace(/^\uFEFF/, ''))
+        var logChanged = false
+        var doNotStrip = false
+        for (const [index1,val] of logArr.entries()) {
+            if (index1 <= lastReadLog) {
+                continue
+            }
+            var eventHandled:boolean = false
+            var tradeSuccess:boolean = false
+            var offeringItems:Array<string> = []
+            var receivingItems:Array<string> = []
+            var trader:string = ""
+            var log_seq:string = ""
+            var complete_seq:string = ""
+            const line = val.replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
+            if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=Are you sure you want to accept this trade')) {
+                log_seq = "s_" + (line.split(' '))[0]
+                for (const [index,val] of logfile.trades.entries()) {
+                    if (val.log_seq==log_seq) {       // Event already handled
+                        eventHandled = true
                         break
                     }
                 }
-                if (logPrefix == '') return //current time not written yet
-                if (!combineFiles) combineFilesFunc(logPrefix)
-                getFile(appFolder + `logs/${logPrefix}_log.json`).then(data => {
-                    //console.log(JSON.stringify(data))
-                    var logfile:any = typeof data == 'object' ? data:JSON.parse((data as string).replace(/^\uFEFF/, ''))
-                    var logChanged = false
-                    for (const [index1,val] of logArr.entries()) {
-                        if (index1 <= lastReadLog) continue
-                        var eventHandled:boolean = false
-                        var tradeSuccess:boolean = false
-                        var offeringItems:Array<string> = []
-                        var receivingItems:Array<string> = []
-                        var trader:string = ""
-                        var log_seq:string = ""
-                        var complete_seq:string = ""
-                        const line = val.replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
-                        if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=Are you sure you want to accept this trade')) {
-                            log_seq = "s_" + (line.split(' '))[0]
-                            for (const [index,val] of logfile.trades.entries()) {
-                                if (val.log_seq==log_seq) {       // Event already handled
-                                    eventHandled = true
-                                    break
-                                }
-                            }
-                            if (eventHandled) continue
-                            logChanged = true
-                            console.log('found trade at '+ log_seq)
-                            for (var i=index1+1; i<=i+200; i++) {
-                                if (!logArr[i]) {   // not logged yet
-                                    tradeSuccess = false
-                                    break
-                                }
-                                const temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
-                                if (temp.match('Script Info: Dialog.lua: Dialog::CreateOkdescription=The trade was successful!, leftItem=\/Menu\/Confirm_Item_Ok')) {
-                                    //console.log('hiiii')
-                                    tradeSuccess = true
-                                    complete_seq = "s_" + (temp.split(' '))[0]
-                                    break
-                                }
-                            }
-                            if (!tradeSuccess) continue
-                            console.log('trade was successful ' + complete_seq)
-                            // Trade is successful. Retrieve trade detail
-                            var allItems = []
-                            for (var i=index1+1; i<=i+200; i++) {
-                                if (!logArr[i]) {   // not logged yet
-                                    tradeSuccess = false
-                                    break
-                                }
-                                const temp = logArr[i].trim()
-                                if (temp.match('leftItem=/Menu/Confirm_Item_Ok, rightItem=/Menu/Confirm_Item_Cancel'))
-                                {
-                                    var temp1 = temp.split(',')
-                                    allItems.push(temp1[0])
-                                    break
-                                }
-                                if (temp != '')
-                                    allItems.push(temp)
-                            }
-                            if (!tradeSuccess) continue
-                            var receiveFlag = 0
-                            allItems.forEach(item => {
-                                if (item.match('and will receive from')) {
-                                    receiveFlag = 1
-                                    trader = (item.split(' '))[4]
-                                } else {
-                                    if (receiveFlag) receivingItems.push(item.replace(/ /g,'_'))
-                                    else offeringItems.push(item.replace(/ /g,'_'))
-                                }
-                            })
-                            //console.log(JSON.stringify(offeringItems))
-                            //console.log(JSON.stringify(receivingItems))
+                if (eventHandled) {
+                    lastReadLog = index1
+                    continue
+                }
+                logChanged = true
+                console.log('found trade at '+ log_seq)
+                for (var i=index1+1; i<=i+200; i++) {
+                    if (!logArr[i]) {   // not logged yet
+                        tradeSuccess = false
+                        doNotStrip = true
+                        break
+                    }
+                    const temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
+                    if (temp.match('Script Info: Dialog.lua: Dialog::CreateOkdescription=The trade was successful!, leftItem=\/Menu\/Confirm_Item_Ok')) {
+                        tradeSuccess = true
+                        complete_seq = "s_" + (temp.split(' '))[0]
+                        break
+                    }
+                }
+                if (!tradeSuccess) continue
+                console.log('trade was successful ' + complete_seq)
+                // Trade is successful. Retrieve trade detail
+                var allItems = []
+                for (var i=index1+1; i<=i+200; i++) {
+                    if (!logArr[i]) {   // not logged yet
+                        tradeSuccess = false
+                        doNotStrip = true
+                        break
+                    }
+                    const temp = logArr[i].trim()
+                    if (temp.match('leftItem=/Menu/Confirm_Item_Ok, rightItem=/Menu/Confirm_Item_Cancel'))
+                    {
+                        var temp1 = temp.split(',')
+                        allItems.push(temp1[0])
+                        break
+                    }
+                    if (temp != '')
+                        allItems.push(temp)
+                }
+                if (!tradeSuccess) continue
+                var receiveFlag = 0
+                allItems.forEach(item => {
+                    if (item.match('and will receive from')) {
+                        receiveFlag = 1
+                        trader = (item.split(' '))[4]
+                    } else {
+                        if (receiveFlag) receivingItems.push(item.replace(/ /g,'_'))
+                        else offeringItems.push(item.replace(/ /g,'_'))
+                    }
+                })
+                //console.log(JSON.stringify(offeringItems))
+                //console.log(JSON.stringify(receivingItems))
 
-                            logfile.trades.push({log_seq: log_seq, complete_seq: complete_seq, trader: trader, offeringItems: offeringItems, receivingItems: receivingItems, status: "successful", timestamp: new Date()})
-                            wfTradeHandler(offeringItems,receivingItems)
-                            lastReadLog = index1
-                            continue
-                            //wfTradeHandler(log_seq,complete_seq,trader,offeringItems,receivingItems,"successful")
-                            //gosub filterRelics
-                            //SetTimer, updateWFLoggerInfo, -2000
-                        }
-                        eventHandled = false
-                        var equipSuccess:boolean = false
-                        var relicEquipped = ""
-                        log_seq = ""
-                        complete_seq = ""
-                        if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=Are you sure you want to equip')) {
-                            log_seq = "s_" + (line.split(' '))[0]
-                            for (const [index,val] of logfile.mission_initialize.entries()) {
-                                if (val.log_seq==log_seq) {       // Event already handled
-                                    eventHandled = true
-                                    break
-                                }
-                            }
-                            if (eventHandled) continue
-                            for (var i=index1+1; i<=i+20; i++) {    //Confirmation must be in next 20 lines
-                                if (!logArr[i]) {   // not logged yet
-                                    equipSuccess = false
-                                    break
-                                }
-                                const temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
-                                if (temp.match('Script Info: Dialog.lua: Dialog::SendResult4')) {
-                                    equipSuccess = true
-                                    complete_seq = "N/A Yet"
-                                    break
-                                }
-                            }
-                            if (!equipSuccess) continue
-                            logChanged = true
-                            console.log('found relic squad at '+ log_seq)
-                            // Check if any other unhandled event(s) before and discard
-                            for (const [index,val] of logfile.mission_initialize.entries()) {
-                                if (val.complete_seq == "N/A Yet")
-                                    logfile.mission_initialize[index].complete_seq = 'discarded'
-                            }
-                            // Retrieve relic being equipped
-                            const temp = line.toLowerCase().split(' ')
-                            relicEquipped = temp[11] + "_" + temp[12] + "_" + temp[13]
-                            // Commit event to file
-                            logfile.mission_initialize.push({log_seq: log_seq, complete_seq: complete_seq, relicEquipped: relicEquipped, status: "unsuccessful", timestamp: new Date(), complete_timestamp: -1})
-                            continue
-                        }
-                        eventHandled = false
-                        log_seq = ""
-                        relicEquipped = ""
-                        complete_seq = ""
-                        if (line.match('Script Info: ProjectionRewardChoice.lua: Got rewards')) {
-                            complete_seq = "s_" + (line.split(' '))[0]
-                            for (const [index,val] of logfile.mission_initialize.entries()) {
-                                if (val.complete_seq==complete_seq) {       // Event already handled
-                                    eventHandled = true
-                                    break
-                                }
-                            }
-                            if (eventHandled) continue
-                            logChanged = true
-                            console.log('found gotRewards at '+ log_seq)
-                            // Find the recent unsuccessful event
-                            for (const [index,mission] of logfile.mission_initialize.entries()) {
-                                if (mission.complete_seq=="N/A Yet") {      
-                                    logfile.mission_initialize[index].complete_seq = complete_seq
-                                    logfile.mission_initialize[index].complete_timestamp = new Date()
-                                    logfile.mission_initialize[index].status = "successful"
-                                    // Retrieve info for event handle
-                                    relicEquipped = logfile.mission_initialize[index].relicEquipped
-                                    break
-                                }
-                            }
-                            wfMissionHandler(relicEquipped)
-                            //gosub filterRelics
-                            //SetTimer, updateWFLoggerInfo, -2000
-                            lastReadLog = index1
-                            continue
-                        }
-                    }
-                    //console.log(JSON.stringify(logfile))
-                    if (logChanged) {
-                        fs.writeFile(appFolder + `logs/${logPrefix}_log.json`, JSON.stringify(logfile), (err) => {
-                            if (err) emitError('Error writing log file', err.stack)
-                        });
-                    }
-                }).catch(err => emitError('Error getting log file', err.stack? err.stack:err))
+                logfile.trades.push({log_seq: log_seq, complete_seq: complete_seq, trader: trader, offeringItems: offeringItems, receivingItems: receivingItems, status: "successful", timestamp: new Date()})
+                wfTradeHandler(offeringItems,receivingItems)
+                continue
+                //wfTradeHandler(log_seq,complete_seq,trader,offeringItems,receivingItems,"successful")
+                //gosub filterRelics
+                //SetTimer, updateWFLoggerInfo, -2000
             }
-        })
+            eventHandled = false
+            var equipSuccess:boolean = false
+            var relicEquipped = ""
+            log_seq = ""
+            complete_seq = ""
+            if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=Are you sure you want to equip')) {
+                log_seq = "s_" + (line.split(' '))[0]
+                for (const [index,val] of logfile.mission_initialize.entries()) {
+                    if (val.log_seq==log_seq) {       // Event already handled
+                        eventHandled = true
+                        break
+                    }
+                }
+                if (eventHandled) {
+                    lastReadLog = index1
+                    continue
+                }
+                for (var i=index1+1; i<=i+20; i++) {    //Confirmation must be in next 20 lines
+                    if (!logArr[i]) {   // not logged yet
+                        equipSuccess = false
+                        doNotStrip = true
+                        break
+                    }
+                    const temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
+                    if (temp.match('Script Info: Dialog.lua: Dialog::SendResult4')) {
+                        equipSuccess = true
+                        complete_seq = "N/A Yet"
+                        break
+                    }
+                }
+                if (!equipSuccess) continue
+                logChanged = true
+                console.log('found relic squad at '+ log_seq)
+                // Check if any other unhandled event(s) before and discard
+                for (const [index,val] of logfile.mission_initialize.entries()) {
+                    if (val.complete_seq == "N/A Yet")
+                        logfile.mission_initialize[index].complete_seq = 'discarded'
+                }
+                // Retrieve relic being equipped
+                const temp = line.toLowerCase().split(' ')
+                relicEquipped = temp[11] + "_" + temp[12] + "_" + temp[13]
+                // Commit event to file
+                logfile.mission_initialize.push({log_seq: log_seq, complete_seq: complete_seq, relicEquipped: relicEquipped, status: "unsuccessful", timestamp: new Date(), complete_timestamp: -1})
+                continue
+            }
+            eventHandled = false
+            log_seq = ""
+            relicEquipped = ""
+            complete_seq = ""
+            if (line.match('Script Info: ProjectionRewardChoice.lua: Got rewards')) {
+                complete_seq = "s_" + (line.split(' '))[0]
+                for (const [index,val] of logfile.mission_initialize.entries()) {
+                    if (val.complete_seq==complete_seq) {       // Event already handled
+                        eventHandled = true
+                        break
+                    }
+                }
+                if (eventHandled) {
+                    lastReadLog = index1
+                    continue
+                }
+                logChanged = true
+                console.log('found gotRewards at '+ log_seq)
+                // Find the recent unsuccessful event
+                for (const [index,mission] of logfile.mission_initialize.entries()) {
+                    if (mission.complete_seq=="N/A Yet") {      
+                        logfile.mission_initialize[index].complete_seq = complete_seq
+                        logfile.mission_initialize[index].complete_timestamp = new Date()
+                        logfile.mission_initialize[index].status = "successful"
+                        // Retrieve info for event handle
+                        relicEquipped = logfile.mission_initialize[index].relicEquipped
+                        break
+                    }
+                }
+                wfMissionHandler(relicEquipped)
+                //gosub filterRelics
+                //SetTimer, updateWFLoggerInfo, -2000
+                continue
+            }
+        }
+        //console.log(JSON.stringify(logfile))
+        if (logChanged) {
+            fs.writeFile(appFolder + `logs/${logPrefix}_log.json`, JSON.stringify(logfile), (err) => {
+                if (err) emitError('Error writing log file', err.stack)
+            });
+        }
+    }).catch(err => {emitError('error getting log file ' + appFolder + `logs/${logPrefix}_log.json`, err.stack? err.stack:err)})
 }
 
 function combineFilesFunc(logPrefix:string) {
@@ -239,8 +288,10 @@ function combineFilesFunc(logPrefix:string) {
         else {
             getFile(appFolder + `logs/full_log.json`).then(data => {
                 var full_log = typeof data == 'object' ? data:JSON.parse((data as string).replace(/^\uFEFF/, ''))
+                var log_change = false
                 for (const [index,filename] of files.entries()) {
                     if (filename.match(logPrefix) || filename == 'full_log.json' || filename == 'gdpr_log.json') continue
+                    log_change = true
                     const fileContent = JSON.parse((fs.readFileSync(appFolder + 'logs/' + filename,'utf-8')).replace(/^\uFEFF/, ''))
                     try {
                         for (const [index,newMission] of fileContent.mission_initialize.entries()) {
@@ -267,16 +318,18 @@ function combineFilesFunc(logPrefix:string) {
                         }
                     } catch (e) {}
                 }
-                fs.writeFile(appFolder + `logs/full_log.json`, JSON.stringify(full_log), (err) => {
-                    if (err) emitError('Error writing log file', err.stack)
-                    else {
-                        for (const [index,filename] of files.entries()) {
-                            if (filename.match(logPrefix) || filename == 'full_log.json' || filename == 'gdpr_log.json') continue
-                            fs.unlinkSync(appFolder + 'logs/' + filename)
+                if (log_change) {
+                    fs.writeFile(appFolder + `logs/full_log.json`, JSON.stringify(full_log), (err) => {
+                        if (err) emitError('Error writing log file', err.stack)
+                        else {
+                            for (const [index,filename] of files.entries()) {
+                                if (filename.match(logPrefix) || filename == 'full_log.json' || filename == 'gdpr_log.json') continue
+                                fs.unlinkSync(appFolder + 'logs/' + filename)
+                            }
+                            combineFiles = true
                         }
-                        combineFiles = true
-                    }
-                });
+                    });
+                }
             }).catch(err => emitError('Error reading full_log.json',err.stack? err.stack:err))
         }
     })

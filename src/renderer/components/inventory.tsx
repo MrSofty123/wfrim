@@ -77,15 +77,13 @@ event.on('itemsListFetch', (data) => {
     })
 })
 
-export {Inventory}
 
+interface IInventoryProps {
+}
 interface IInventoryState {
     updateCards: boolean,
     searchRelic: Array<string>,
     relicDB: Array<relicProps>
-}
-
-interface IInventoryProps {
 }
 
 class Inventory extends React.Component<IInventoryProps,IInventoryState> {
@@ -115,41 +113,44 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
         })
     }
 
+    componentDidUpdate() {
+        console.log('*************updating inventory*******************')
+    }
+
     childCallback = (option:string, arg:any) => {
         if (option=="updateCards") this.setState({updateCards: true});
         if (option=="searchRelic") this.setState({searchRelic: arg});
     }
     render() {
         return (
-            <Box height="90vh">
-                <CssBaseline />
-                <Grid container spacing={4}>
-                    <Grid item xs={12}>
-                        <AddRelic childCallback={this.childCallback}/>
-                    </Grid>
-                    <Grid item xs={12}>
-                        <div>
-                        <Grid container spacing={1}>
-                            {this.state.updateCards}
-                            {this.state.relicDB.map((relic:any, i:number) => {
-                                //console.log('Creating card ' + relic.name)
-                                const arr = relic.name.split(' ')
-                                if (showTiers[arr[0].toLowerCase() as keyof IshowTiers]) {
-                                    if (relic.display || !relic.hasOwnProperty("display"))
-                                        if (this.state.searchRelic.length == 0 || this.state.searchRelic.includes(relic.name))
-                                            return <Grid item key={`card${relic.name.replace(/ /g,'_')}`}>
-                                                        <RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} childCallback={this.childCallback}/>
-                                                    </Grid>
-                                }
-                            })}
-                        </Grid>
-                        </div>
-                    </Grid>
+            <Grid container spacing={4}>
+                <CssBaseline/>
+                <Grid item xs={12}>
+                    <AddRelic childCallback={this.childCallback}/>
                 </Grid>
-            </Box>
+                <Grid item xs={12}>
+                    <div>
+                    <Grid container spacing={1}>
+                        {this.state.updateCards}
+                        {this.state.relicDB.map((relic:any, i:number) => {
+                            //console.log('Creating card ' + relic.name)
+                            const arr = relic.name.split(' ')
+                            if (showTiers[arr[0].toLowerCase() as keyof IshowTiers]) {
+                                if (relic.display || !relic.hasOwnProperty("display"))
+                                    if (this.state.searchRelic.length == 0 || this.state.searchRelic.includes(relic.name))
+                                        return <Grid item key={`card${relic.name.replace(/ /g,'_')}`}>
+                                                    <RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} childCallback={this.childCallback}/>
+                                                </Grid>
+                            }
+                        })}
+                    </Grid>
+                    </div>
+                </Grid>
+            </Grid>
         )
     }
 }
+
 
 interface IRelicCardProps {
     name: string,
@@ -474,3 +475,5 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
         )
     }
 }
+
+export default React.memo(Inventory)
