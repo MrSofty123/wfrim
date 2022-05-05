@@ -1,0 +1,116 @@
+{
+    "zh": [
+        {
+            "match": "确定要装备",
+            "replace": "Are you sure you want to equip"
+        },{
+            "match": "遗物",
+            "replace": "Relic"
+        },{
+            "match": "光辉",
+            "replace": "[RADIANT]"
+        },{
+            "match": "无瑕",
+            "replace": "[FLAWLESS]"
+        },{
+            "match": "优良",
+            "replace": "[EXCEPTIONAL]"
+        },{
+            "match": "古纪",
+            "replace": "Lith"
+        },{
+            "match": "前纪",
+            "replace": "Meso"
+        },{
+            "match": "中纪",
+            "replace": "Neo"
+        },{
+            "match": "后纪",
+            "replace": "Axi"
+        },{
+            "match": "交易成功！",
+            "replace": "The trade was successful!"
+        },{
+            "match": "确定接受这项交易",
+            "replace": "Are you sure you want to accept this trade"
+        },{
+            "match": "而您将会从",
+            "replace": "and will receive from"
+        },{
+            "match": "白金",
+            "replace": "PLATINUM"
+        }
+    ],
+    "tc": [
+        {
+            "match": "確定要裝備",
+            "replace": "Are you sure you want to equip"
+        },{
+            "match": "遺物",
+            "replace": "Relic"
+        },{
+            "match": "光輝",
+            "replace": "[RADIANT]"
+        },{
+            "match": "無瑕",
+            "replace": "[FLAWLESS]"
+        },{
+            "match": "優良",
+            "replace": "[EXCEPTIONAL]"
+        },{
+            "match": "古紀",
+            "replace": "Lith"
+        },{
+            "match": "前紀",
+            "replace": "Meso"
+        },{
+            "match": "中紀",
+            "replace": "Neo"
+        },{
+            "match": "後紀",
+            "replace": "Axi"
+        },{
+            "match": "交易成功!",
+            "replace": "The trade was successful!"
+        },{
+            "match": "確定接受這項交易",
+            "replace": "Are you sure you want to accept this trade"
+        },{
+            "match": "而您將會從",
+            "replace": "and will receive from"
+        },{
+            "match": "白金",
+            "replace": "PLATINUM"
+        }
+    ],
+    "fr": [
+        {
+        "match": "Souhaitez-vous vraiment équiper Relique",
+        "replace": "Are you sure you want to equip"
+        },{
+        "match": "Souhaitez-vous vraiment équiper Relic",
+        "replace": "Are you sure you want to equip"
+        },{
+        "match": "Relique",
+        "replace": "Relic"
+        },{
+        "match": "ÉCLATANTE",
+        "replace": "[RADIANT]"
+        },{
+        "match": "IMPECCABLE",
+        "replace": "[FLAWLESS]"
+        },{
+        "match": "EXCEPTIONNELLE",
+        "replace": "[EXCEPTIONAL]"
+        },{
+        "match": "L'échange a réussi!",
+        "replace": "The trade was successful!"
+        },{
+        "match": "Souhaitez-vous vraiment accepter cet échange",
+        "replace": "Are you sure you want to accept this trade"
+        },{
+        "match": "et vous recevrez de PhOieX ceci",
+        "replace": "and will receive from"
+        }
+    ]
+}

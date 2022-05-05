@@ -4,88 +4,7 @@ import Os from 'os'
 import path from 'path'
 import { ipcMain } from 'electron';
 //import {config} from './config'
-
-const translates = [
-    {
-        match: '确定要装备',
-        replace: 'Are you sure you want to equip'
-    },{
-        match: '確定要裝備',
-        replace: 'Are you sure you want to equip'
-    },{
-        match: '遗物',
-        replace: 'Relic'
-    },{
-        match: '遺物',
-        replace: 'Relic'
-    },{
-        match: '古纪',
-        replace: 'Lith'
-    },{
-        match: '古紀',
-        replace: 'Lith'
-    },{
-        match: '前纪',
-        replace: 'Meso'
-    },{
-        match: '前紀',
-        replace: 'Meso'
-    },{
-        match: '中纪',
-        replace: 'Neo'
-    },{
-        match: '中紀',
-        replace: 'Neo'
-    },{
-        match: '后纪',
-        replace: 'Axi'
-    },{
-        match: '後紀',
-        replace: 'Axi'
-    },{
-        match: '交易成功！',
-        replace: 'The trade was successful!'
-    },{
-        match: '交易成功!',
-        replace: 'The trade was successful!'
-    },{
-        match: '确定接受这项交易',
-        replace: 'Are you sure you want to accept this trade'
-    },{
-        match: '確定接受這項交易',
-        replace: 'Are you sure you want to accept this trade'
-    },{
-        match: '而您将会从',
-        replace: 'and will receive from'
-    },{
-        match: '而您將會從',
-        replace: 'and will receive from'
-    },{
-        match: '白金',
-        replace: 'platinum'
-    }
-]
-// ---------------- chinese1 ----------------
-// Relic - 遗物
-// lith - 古纪
-// meso - 前纪
-// neo - 中纪
-// axi -后纪
-// platinum - 白金
-// ---------------- chinese 2 ----------------
-// relic - 遺物
-// lith - 古紀
-// meso - 前紀
-// neo - 中紀
-// axi - 後紀
-// platinum - 白金
-// --------------- french ----------------
-// relic - 
-// lith - 
-// meso - 
-// neo - 
-// axi - 
-// platinum - 
+import lang from './lang.json'
 
 const eeLogPath = Os.homedir() + '/AppData/Local/Warframe/EE.log'
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
@@ -114,6 +33,7 @@ const byte_size = 100000
 var readbytes = 0
 var eeLogFD:any
 var logPrefix:string = ''
+var client_lang:string = ''
 
 getEELogFD()
 function getEELogFD() {
@@ -133,6 +53,7 @@ function readsome() {
             logPrefix = ''
             eeLogContents = ''
             readbytes = 0
+            client_lang = ''
             const eeLogWatcher = fs.watch(eeLogPath,(event,filename) => {
                 if (event == 'change') {
                     console.log('eeLog has changed. Opening new descripter')
@@ -141,7 +62,10 @@ function readsome() {
                 }
             })
         } else {
-            eeLogContents = eeLogContents.substring(eeLogContents.length - 100000) // strip old data from var
+            //eeLogContents = eeLogContents.substring(eeLogContents.length - 100000) // strip old data from var
+            if (client_lang != 'en')
+                if ((lang as any)[client_lang]) 
+                    (lang as any)[client_lang].forEach((obj:any) => eeLogContents=eeLogContents.replace(obj.match,obj.replace))  // translate from other languages
             setTimeout(readsome, 3000);
         }
     } else fs.read(eeLogFD, new Buffer(byte_size), 0, byte_size, readbytes, processsome);
@@ -150,6 +74,26 @@ function readsome() {
 function processsome(err:any, bytecount:number, buff:any) {
     console.log('Read', bytecount, 'and will process it now.');
 
+    // Here we will process our incoming data:
+        // Do whatever you need. Just be careful about not using beyond the bytecount in buff.
+        //console.log(buff.toString('utf-8', 0, bytecount));
+        eeLogContents += buff.toString('utf-8', 0, bytecount)
+        console.log('eeLogContents: ' + eeLogContents.length)
+
+    if (client_lang == '') {
+        const logArr = eeLogContents.split('\r\n')
+        for (const [index,val] of logArr.entries()) {
+            const line = val.replace(/\[/g, '').replace(/]/g, '')
+            if (line.match(`-language:en`)) client_lang = 'en'
+            if (line.match(`-language:zh`)) client_lang = 'zh'
+            if (line.match(`-language:tc`)) client_lang = 'tc'
+            if (line.match(`-language:fr`)) client_lang = 'fr'
+        }
+        if (client_lang == '') {
+            emitError('No language support', 'Sorry your client language is not supported for automatic log reading for now. Please contact the developer MrSofty#7926 on Discord or open issue request on GitHub https://github.com/MrSofty123/wfrim/issues')
+            return
+        }
+    }
     if (logPrefix == '') { // update logPrefix
         const logArr = eeLogContents.split('\r\n')
         for (const [index,val] of logArr.entries()) {
@@ -161,11 +105,6 @@ function processsome(err:any, bytecount:number, buff:any) {
             }
         }
     }
-    // Here we will process our incoming data:
-        // Do whatever you need. Just be careful about not using beyond the bytecount in buff.
-        //console.log(buff.toString('utf-8', 0, bytecount));
-        eeLogContents += buff.toString('utf-8', 0, bytecount)
-        console.log('eeLogContents: ' + eeLogContents.length)
     // So we continue reading from where we left:
     readbytes+=bytecount;
     process.nextTick(readsome);
@@ -229,9 +168,9 @@ function logRead () {
             var trader:string = ""
             var log_seq:string = ""
             var complete_seq:string = ""
-            var line = val.replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
-            translates.forEach(obj => line=line.replace(obj.match,obj.replace))  // translate from other languages
-            if (line.match('Script Info: Dialog.lua: Dialog::CreateOkdescription=')) console.log(line)
+            const line = val.replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
+            //translates.forEach(obj => line=line.replace(obj.match,obj.replace))  // translate from other languages
+            //if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=')) console.log(line)
             if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=Are you sure you want to accept this trade')) {
                 log_seq = "s_" + (line.split(' '))[0]
                 for (const [index,val] of logfile.trades.entries()) {
@@ -243,13 +182,13 @@ function logRead () {
                 if (eventHandled) continue
                 logChanged = true
                 console.log('found trade at '+ log_seq)
-                for (var i=index1+1; i<=i+200; i++) {
+                for (var i=index1+1; i<=index1+200; i++) {
                     if (!logArr[i]) {   // not logged yet
                         tradeSuccess = false
                         break
                     }
                     var temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
-                    translates.forEach(obj => temp=temp.replace(obj.match,obj.replace))  // translate from other languages
+                    //translates.forEach(obj => temp=temp.replace(obj.match,obj.replace))  // translate from other languages
                     if (temp.match('Script Info: Dialog.lua: Dialog::CreateOkdescription=The trade was successful!, leftItem=\/Menu\/Confirm_Item_Ok')) {
                         tradeSuccess = true
                         complete_seq = "s_" + (temp.split(' '))[0]
@@ -260,7 +199,7 @@ function logRead () {
                 console.log('trade was successful ' + complete_seq)
                 // Trade is successful. Retrieve trade detail
                 var allItems = []
-                for (var i=index1+1; i<=i+200; i++) {
+                for (var i=index1+1; i<=index1+200; i++) {
                     if (!logArr[i]) {   // not logged yet
                         tradeSuccess = false
                         break
@@ -278,7 +217,7 @@ function logRead () {
                 if (!tradeSuccess) continue
                 var receiveFlag = 0
                 allItems.forEach(item => {
-                    translates.forEach(obj => item=item.replace(obj.match,obj.replace))  // translate from other languages
+                    //translates.forEach(obj => item=item.replace(obj.match,obj.replace))  // translate from other languages
                     if (item.match('and will receive from')) {
                         receiveFlag = 1
                         trader = (item.split(' '))[4]
@@ -290,7 +229,7 @@ function logRead () {
                 //console.log(JSON.stringify(offeringItems))
                 //console.log(JSON.stringify(receivingItems))
 
-                logfile.trades.push({log_seq: log_seq, complete_seq: complete_seq, trader: trader, offeringItems: offeringItems, receivingItems: receivingItems, status: "successful", timestamp: new Date()})
+                logfile.trades.push({log_seq: log_seq, complete_seq: complete_seq,client_lang: client_lang, trader: trader, offeringItems: offeringItems, receivingItems: receivingItems, status: "successful", timestamp: new Date()})
                 wfTradeHandler(offeringItems,receivingItems)
                 continue
                 //wfTradeHandler(log_seq,complete_seq,trader,offeringItems,receivingItems,"successful")
@@ -300,6 +239,7 @@ function logRead () {
             eventHandled = false
             var equipSuccess:boolean = false
             var relicEquipped = ""
+            var refinement = ""
             log_seq = ""
             complete_seq = ""
             if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=Are you sure you want to equip')) {
@@ -311,7 +251,7 @@ function logRead () {
                     }
                 }
                 if (eventHandled) continue
-                for (var i=index1+1; i<=i+20; i++) {    //Confirmation must be in next 20 lines
+                for (var i=index1+1; i<=index1+20; i++) {    //Confirmation must be in next 20 lines
                     if (!logArr[i]) {   // not logged yet
                         equipSuccess = false
                         break
@@ -333,9 +273,10 @@ function logRead () {
                 }
                 // Retrieve relic being equipped
                 const temp = line.toLowerCase().split(' ')
-                relicEquipped = temp[11] + "_" + temp[12] + "_" + temp[13]
+                relicEquipped = temp[11] + "_" + temp[12] + "_relic"
+                refinement = line.toLowerCase().match('radiant') ? 'radiant' : (line.toLowerCase().match('flawless') ? 'flawless' : (line.toLowerCase().match('exceptional') ? 'exceptional':'intact'))
                 // Commit event to file
-                logfile.mission_initialize.push({log_seq: log_seq, complete_seq: complete_seq, relicEquipped: relicEquipped, status: "unsuccessful", timestamp: new Date(), complete_timestamp: -1})
+                logfile.mission_initialize.push({log_seq: log_seq, complete_seq: complete_seq,client_lang: client_lang, relicEquipped: relicEquipped, refinement: refinement, status: "unsuccessful", timestamp: new Date(), complete_timestamp: -1})
                 continue
             }
             eventHandled = false
