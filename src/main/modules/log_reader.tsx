@@ -62,7 +62,7 @@ function readsome() {
                 }
             })
         } else {
-            //eeLogContents = eeLogContents.substring(eeLogContents.length - 100000) // strip old data from var
+            eeLogContents = eeLogContents.substring(eeLogContents.length - 100000) // strip old data from var
             if (client_lang != 'en')
                 if ((lang as any)[client_lang]) 
                     (lang as any)[client_lang].forEach((obj:any) => eeLogContents=eeLogContents.replace(obj.match,obj.replace))  // translate from other languages
@@ -91,6 +91,7 @@ function processsome(err:any, bytecount:number, buff:any) {
         }
         if (client_lang == '') {
             emitError('No language support', 'Sorry your client language is not supported for automatic log reading for now. Please contact the developer MrSofty#7926 on Discord or open issue request on GitHub https://github.com/MrSofty123/wfrim/issues')
+            console.log('shutting down log reader')
             return
         }
     }
