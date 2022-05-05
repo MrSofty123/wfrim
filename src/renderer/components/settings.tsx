@@ -45,7 +45,6 @@ import { Event } from 'electron';
 interface ISettingsProps {
 }
 interface ISettingsState {
-    update: boolean,
     inv_upths_val: number,
     inv_loths_val: number,
     inv_upths_col: number,
@@ -55,15 +54,16 @@ interface ISettingsState {
     alertContent: string
 }
 
+var postConfigTimer:ReturnType<typeof setTimeout>;
+
 class Settings extends React.Component<ISettingsProps,ISettingsState> {
     constructor(props:any) {
       super(props);
       this.state = {
-        update: false,
-        inv_upths_val: Object.keys(config).length > 0 ? (config as any).inv_upths_val:0,
-        inv_loths_val: Object.keys(config).length > 0 ? (config as any).inv_loths_val:0,
-        inv_upths_col: Object.keys(config).length > 0 ? (config as any).inv_upths_col:'transparent',
-        inv_loths_col: Object.keys(config).length > 0 ? (config as any).inv_loths_col:'transparent',
+        inv_upths_val: 0,
+        inv_loths_val: 0,
+        inv_upths_col: 'transparent',
+        inv_loths_col: 'transparent',
         alertOpen: false,
         alertTitle: '',
         alertContent: ''
@@ -72,7 +72,10 @@ class Settings extends React.Component<ISettingsProps,ISettingsState> {
     
     componentDidMount() {
         event.on('configFetchComplete', (data:any) => {
-            this.setState({update: true});
+            this.setState({inv_upths_val: (config as any).inv_upths_val})
+            this.setState({inv_loths_val: (config as any).inv_loths_val})
+            this.setState({inv_upths_col: (config as any).inv_upths_col})
+            this.setState({inv_loths_col: (config as any).inv_loths_col})
         })
         event.on('importSRBResponse', (arg) => {
             this.setState({alertOpen: true, alertTitle: arg.message.title, alertContent: arg.message.content})
@@ -87,7 +90,8 @@ class Settings extends React.Component<ISettingsProps,ISettingsState> {
     handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const new_config:any = config
         new_config[e.target.id] = e.target.checked
-        event.emit('postConfig', new_config)
+        clearTimeout(postConfigTimer)
+        postConfigTimer = setTimeout(() => event.emit('postConfig', new_config), 1000)
     }
 
     
@@ -98,7 +102,8 @@ class Settings extends React.Component<ISettingsProps,ISettingsState> {
         this.setState(stateObject)
         const new_config:any = config
         new_config[id] = stateObject[id]
-        event.emit('postConfig', new_config)
+        clearTimeout(postConfigTimer)
+        postConfigTimer = setTimeout(() => event.emit('postConfig', new_config), 1000)
     };
 
     handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,7 +112,8 @@ class Settings extends React.Component<ISettingsProps,ISettingsState> {
         this.setState(stateObject)
         const new_config:any = config
         new_config[e.target.id] = stateObject[e.target.id];
-        event.emit('postConfig', new_config)
+        clearTimeout(postConfigTimer)
+        postConfigTimer = setTimeout(() => event.emit('postConfig', new_config), 1000)
     };
 
     handleBlur = () => {
@@ -142,7 +148,8 @@ class Settings extends React.Component<ISettingsProps,ISettingsState> {
         this.setState(stateObject)
         const new_config:any = config
         new_config[id] = `#${newValue.hex}`
-        event.emit('postConfig', new_config)
+        clearTimeout(postConfigTimer)
+        postConfigTimer = setTimeout(() => event.emit('postConfig', new_config), 1000)
     };
 
 

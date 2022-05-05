@@ -142,19 +142,18 @@ function FullWidthTabs() {
           <Tab label="Settings" {...a11yProps(3)} />
         </Tabs>
       </AppBar>
-
-          <div hidden={value !== 0} style={{overflowY:'scroll',maxHeight:"93%",padding:'10px'}}>
-          <Inventory/>
-          </div>
-          <div hidden={value !== 1} style={{overflowY:'scroll',maxHeight:"93%",padding:'10px'}}>
-          Hosting
-          </div>
-          <div hidden={value !== 2} style={{overflowY:'scroll',maxHeight:"93%",padding:'10px'}}>
-          <Statistics/>
-          </div>
-          <div hidden={value !== 3} style={{overflowY:'scroll',maxHeight:"93%",padding:'10px'}}>
-            <Settings/>
-          </div>
+      <div hidden={value !== 0} style={{overflowY:'auto',maxHeight:"93%",padding:'10px'}}>
+      <Inventory/>
+      </div>
+      <div hidden={value !== 1} style={{overflowY:'auto',maxHeight:"93%",padding:'10px'}}>
+      Hosting
+      </div>
+      <div hidden={value !== 2} style={{overflowY:'auto',maxHeight:"93%",padding:'10px'}}>
+      <Statistics/>
+      </div>
+      <div hidden={value !== 3} style={{overflowY:'auto',maxHeight:"93%",padding:'10px'}}>
+        <Settings/>
+      </div>
     </Box>
   );
 }

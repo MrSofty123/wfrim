@@ -113,7 +113,7 @@ const createWindow = async () => {
   const {width, height} = Electron.screen.getPrimaryDisplay().workAreaSize
   mainWindow = new BrowserWindow({
     show: false,
-    width: width*0.75,
+    width: width*0.85,
     height: height*0.90,
     icon: getAssetPath('icon.png'),
     webPreferences: {

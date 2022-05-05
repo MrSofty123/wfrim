@@ -5,6 +5,88 @@ import path from 'path'
 import { ipcMain } from 'electron';
 //import {config} from './config'
 
+const translates = [
+    {
+        match: '确定要装备',
+        replace: 'Are you sure you want to equip'
+    },{
+        match: '確定要裝備',
+        replace: 'Are you sure you want to equip'
+    },{
+        match: '遗物',
+        replace: 'Relic'
+    },{
+        match: '遺物',
+        replace: 'Relic'
+    },{
+        match: '古纪',
+        replace: 'Lith'
+    },{
+        match: '古紀',
+        replace: 'Lith'
+    },{
+        match: '前纪',
+        replace: 'Meso'
+    },{
+        match: '前紀',
+        replace: 'Meso'
+    },{
+        match: '中纪',
+        replace: 'Neo'
+    },{
+        match: '中紀',
+        replace: 'Neo'
+    },{
+        match: '后纪',
+        replace: 'Axi'
+    },{
+        match: '後紀',
+        replace: 'Axi'
+    },{
+        match: '交易成功！',
+        replace: 'The trade was successful!'
+    },{
+        match: '交易成功!',
+        replace: 'The trade was successful!'
+    },{
+        match: '确定接受这项交易',
+        replace: 'Are you sure you want to accept this trade'
+    },{
+        match: '確定接受這項交易',
+        replace: 'Are you sure you want to accept this trade'
+    },{
+        match: '而您将会从',
+        replace: 'and will receive from'
+    },{
+        match: '而您將會從',
+        replace: 'and will receive from'
+    },{
+        match: '白金',
+        replace: 'platinum'
+    }
+]
+// ---------------- chinese1 ----------------
+// Relic - 遗物
+// lith - 古纪
+// meso - 前纪
+// neo - 中纪
+// axi -后纪
+// platinum - 白金
+// ---------------- chinese 2 ----------------
+// relic - 遺物
+// lith - 古紀
+// meso - 前紀
+// neo - 中紀
+// axi - 後紀
+// platinum - 白金
+// --------------- french ----------------
+// relic - 
+// lith - 
+// meso - 
+// neo - 
+// axi - 
+// platinum - 
+
 const eeLogPath = Os.homedir() + '/AppData/Local/Warframe/EE.log'
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
 
@@ -147,7 +229,9 @@ function logRead () {
             var trader:string = ""
             var log_seq:string = ""
             var complete_seq:string = ""
-            const line = val.replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
+            var line = val.replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
+            translates.forEach(obj => line=line.replace(obj.match,obj.replace))  // translate from other languages
+            if (line.match('Script Info: Dialog.lua: Dialog::CreateOkdescription=')) console.log(line)
             if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=Are you sure you want to accept this trade')) {
                 log_seq = "s_" + (line.split(' '))[0]
                 for (const [index,val] of logfile.trades.entries()) {
@@ -164,7 +248,8 @@ function logRead () {
                         tradeSuccess = false
                         break
                     }
-                    const temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
+                    var temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
+                    translates.forEach(obj => temp=temp.replace(obj.match,obj.replace))  // translate from other languages
                     if (temp.match('Script Info: Dialog.lua: Dialog::CreateOkdescription=The trade was successful!, leftItem=\/Menu\/Confirm_Item_Ok')) {
                         tradeSuccess = true
                         complete_seq = "s_" + (temp.split(' '))[0]
@@ -193,6 +278,7 @@ function logRead () {
                 if (!tradeSuccess) continue
                 var receiveFlag = 0
                 allItems.forEach(item => {
+                    translates.forEach(obj => item=item.replace(obj.match,obj.replace))  // translate from other languages
                     if (item.match('and will receive from')) {
                         receiveFlag = 1
                         trader = (item.split(' '))[4]
