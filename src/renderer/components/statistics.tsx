@@ -1,27 +1,12 @@
 import {
-    Button, 
-    IconButton,
-    ButtonGroup,
+    Button,
     Dialog,
     DialogTitle, 
     DialogContent,
     DialogContentText,
     DialogActions,
-    Alert,
-    FormControlLabel,
-    Checkbox,
-    TextField,
-    Box,
-    Card,
-    CardContent,
-    CardActionArea,
     Typography,
-    Avatar,
     Grid,
-    Tooltip,
-    ListItem,
-    ListItemButton,
-    ListItemText,
     Table,
     TableBody,
     TableCell,
@@ -32,33 +17,23 @@ import {
     Input
 } from '@mui/material';
 import {
-    AddBox,
-    Add,
-    Remove,
-    Delete,
     FileDownload
 } from '@mui/icons-material';
-import React, { ChangeEvent } from 'react';
+import React from 'react';
 import {event} from '../eventHandler'
-import lith from '../../../assets/lith.png'
-import meso from '../../../assets/meso.png'
-import neo from '../../../assets/neo.png'
-import axi from '../../../assets/axi.png'
-import Repeatable from 'react-repeatable'
-//import {convertUpper,dynamicSort, dynamicSortDesc} from './extras'
-import {config} from './config'
 
-var rawStatistics = {mission_initialize: [], trades: []}
-var relicsDB:Array<any> = []
+//var rawStatistics = {mission_initialize: [], trades: []}
+//var relicsDB:Array<any> = []
 
 event.on('statisticsFetch', (data:any) => {
-    rawStatistics = typeof data == 'object' ? data:JSON.parse(data)
+    statistics = typeof data == 'object' ? data:JSON.parse(data)
     event.emit('updateStatistics')
 })
+/*
 event.on('relicDBFetch', (data:any) => {
     relicsDB = typeof data == 'object' ? data:JSON.parse(data)
-})
-
+})*/
+/*
 interface Iitems_list {
     [key: string]: {
         item_url: string,
@@ -74,14 +49,112 @@ interface Iitems_list {
         items_in_set: Array<{url_name: string, quantity_for_set: number}>,
     }
 }
+
 var items_list:Iitems_list = {
 }
+*/
+interface Istatistics {
+    relics: {
+        opened: {
+            total: {
+                all_time: number,
+                today: number,
+                daily_avg: number
+                runsPerDay: {[key: string]: Array<object>}
+            },
+            vaulted: {
+                all_time: number,
+                today: number,
+                daily_avg: number
+                runsPerDay: {[key: string]: Array<object>}
+            },
+            tracked: {
+                all_time: number,
+                today: number,
+                daily_avg: number
+                runsPerDay: {[key: string]: Array<object>}
+            }
+        },
+        opened_distr: {[key: string]: {opened: 0}},
+        opened_sorted: string[]
+    },
+    trades: {
+        plat: {
+            spent: {
+                all_time: number,
+                today: number,
+                daily_avg: number,
+                spentPerDay: {[key: string]: number}
+            },
+            gained: {
+                all_time: number,
+                today: number,
+                daily_avg: number,
+                gainedPerDay: {[key: string]: number}
+            }
+        },
+        items: {
+            sold: {[key: string]: number},
+            bought: {[key: string]: number},
+            sets_sold: {[key: string]: number},
+        }
+    }
+}
+var statistics:Istatistics = {
+    relics: {
+        opened: {
+            total: {
+                all_time: 0,
+                today: 0,
+                daily_avg: 0,
+                runsPerDay: {}
+            },
+            vaulted: {
+                all_time: 0,
+                today: 0,
+                daily_avg: 0,
+                runsPerDay: {}
+            },
+            tracked: {
+                all_time: 0,
+                today: 0,
+                daily_avg: 0,
+                runsPerDay: {}
+            }
+        },
+        opened_distr: {},
+        opened_sorted: []
+    },
+    trades: {
+        plat: {
+            spent: {
+                all_time: 0,
+                today: 0,
+                daily_avg: 0,
+                spentPerDay: {}
+            },
+            gained: {
+                all_time: 0,
+                today: 0,
+                daily_avg: 0,
+                gainedPerDay: {}
+            }
+        },
+        items: {
+            sold: {},
+            bought: {},
+            sets_sold: {}
+        }
+    }
+}
+/*
 event.on('itemsListFetch', (data) => {
     // convert into keys for faster access
     data.forEach((item:any) => {
         items_list[item.item_url as keyof Iitems_list] = item
     })
 })
+*/
 
 interface IStatisticsProps {
 }
@@ -114,7 +187,7 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
         console.log('*************updating statistics*******************')
     }
 
-
+    /*
     computeStats = () => {
         interface Istatistics {
             relics: {
@@ -372,248 +445,178 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
         //console.log(JSON.stringify(sortObject(statistics.trades.items.sold)))
         return (
             <React.Fragment>
-                <Grid container spacing={2} justifyContent="center">
-                    <Grid item xs={4}>
-                        <Typography color="inherit" style={{fontSize: '32px'}}>Relics Opened</Typography>
-                        <Grid container spacing={2} justifyContent="center">
-                            <Grid item xs={4}>
-                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>All relics</Typography>
-                                <Typography color="inherit">All time: {statistics.relics.opened.total.all_time}</Typography>
-                                <Typography color="inherit">Today: {statistics.relics.opened.total.today}</Typography>
-                                <Typography color="inherit">Avg: {statistics.relics.opened.total.daily_avg}/day</Typography>
-                            </Grid>
-                            <Grid item xs={4}>
-                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Vaulted relics</Typography>
-                                <Typography color="inherit">All time: {statistics.relics.opened.vaulted.all_time}</Typography>
-                                <Typography color="inherit">Today: {statistics.relics.opened.vaulted.today}</Typography>
-                                <Typography color="inherit">Avg: {statistics.relics.opened.vaulted.daily_avg}/day</Typography>
-                            </Grid>
-                            <Grid item xs={4}>
-                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Tracked relics</Typography>
-                                <Typography color="inherit">All time: {statistics.relics.opened.tracked.all_time}</Typography>
-                                <Typography color="inherit">Today: {statistics.relics.opened.tracked.today}</Typography>
-                                <Typography color="inherit">Avg: {statistics.relics.opened.tracked.daily_avg}/day</Typography>
-                            </Grid>
-                            <Grid item xs={12}></Grid>
-                            <Grid item xs={12}>
-                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top Relics Opened</Typography>
-                                <TableContainer sx={{ maxHeight: 350, maxWidth: 250 }}>
-                                    <Table>
-                                        <TableHead>
-                                        <TableRow>
-                                            <TableCell>Relic</TableCell>
-                                            <TableCell align="right">Opened</TableCell>
-                                        </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                        {sortObject(statistics.relics.opened_distr,'opened').map((relic) => (
-                                            <TableRow
-                                            key={relic.key + '_top_opened'}
-                                            sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                                            >
-                                            <TableCell component="th" scope="row">
-                                                {convertUpper(relic.key.replace('_relic',''))}
-                                            </TableCell>
-                                            <TableCell align="right">{relic.value}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                            </Grid>
-                        </Grid>
-                    </Grid>
-                    <Grid item xs={8}>
-                        <Typography color="inherit" style={{fontSize: '32px'}}>Trades</Typography>
-                        <Grid container spacing={2} justifyContent="center">
-                            <Grid item xs={4}>
-                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Plat Earned</Typography>
-                                <Typography color="inherit">All time: {statistics.trades.plat.gained.all_time}p</Typography>
-                                <Typography color="inherit">Today: {statistics.trades.plat.gained.today}p</Typography>
-                                <Typography color="inherit">Avg: {statistics.trades.plat.gained.daily_avg}p/day</Typography>
-                            </Grid>
-                            <Grid item xs={4}>
-                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Plat Spent</Typography>
-                                <Typography color="inherit">All time: {statistics.trades.plat.spent.all_time}p</Typography>
-                                <Typography color="inherit">Today: {statistics.trades.plat.spent.today}p</Typography>
-                                <Typography color="inherit">Avg: {statistics.trades.plat.spent.daily_avg}p/day</Typography>
-                            </Grid>
-                            <Grid item xs={4}>
-                            </Grid>
-                            <Grid item xs={12}></Grid>
-                            <Grid item xs={4}>
-                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top Items sold</Typography>
-                                <TableContainer sx={{ maxHeight: 350, maxWidth: 370}}>
-                                    <Table>
-                                        <TableHead>
-                                        <TableRow>
-                                            <TableCell>Item</TableCell>
-                                            <TableCell align="right">Quantity</TableCell>
-                                        </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                        {sortObject(statistics.trades.items.sold).map((item:any) => (
-                                            <TableRow
-                                            key={item.key + '_top_sold'}
-                                            sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                                            >
-                                            <TableCell component="th" scope="row">
-                                                {convertUpper(item.key)}
-                                            </TableCell>
-                                            <TableCell align="right">{item.value}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                            </Grid>
-                            <Grid item xs={4}>
-                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top Items bought</Typography>
-                                <TableContainer sx={{ maxHeight: 350, maxWidth: 370 }}>
-                                    <Table>
-                                        <TableHead>
-                                        <TableRow>
-                                            <TableCell>Item</TableCell>
-                                            <TableCell align="right">Quantity</TableCell>
-                                        </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                        {sortObject(statistics.trades.items.bought).map((item:any) => (
-                                            <TableRow
-                                            key={item.key + '_top_bought'}
-                                            sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                                            >
-                                            <TableCell component="th" scope="row">
-                                                {convertUpper(item.key)}
-                                            </TableCell>
-                                            <TableCell align="right">{item.value}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                            </Grid>
-                            <Grid item xs={4}>
-                                <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top sets sold</Typography>
-                                <TableContainer sx={{ maxHeight: 350, maxWidth: 370 }}>
-                                    <Table>
-                                        <TableHead>
-                                        <TableRow>
-                                            <TableCell>Set</TableCell>
-                                            <TableCell align="right">Quantity</TableCell>
-                                        </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                        {sortObject(statistics.trades.items.sets_sold).map((item:any) => (
-                                            <TableRow
-                                            key={item.key + '_top_sets_sold'}
-                                            sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                                            >
-                                            <TableCell component="th" scope="row">
-                                                {convertUpper(item.key)}
-                                            </TableCell>
-                                            <TableCell align="right">{item.value}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                            </Grid>
-                        </Grid>
-                    </Grid>
-                </Grid>
           </React.Fragment>
         )
     }
+    */
 
     render() {
         return (
             <Grid container maxHeight={'90vh'} overflow='auto'>
-                <Grid item xs={12} style={{display: 'flex', justifyContent:'flex-end'}}>
-                    <TopBar/>
-                </Grid>
                 <Grid item xs={12}>
                     <CssBaseline />
                     {this.state.update}
-                    <this.computeStats />
+                    <Grid container spacing={2} justifyContent="center">
+                        <Grid item xs={4}>
+                            <Typography color="inherit" style={{fontSize: '32px'}}>Relics Opened</Typography>
+                            <Grid container spacing={2} justifyContent="center">
+                                <Grid item xs={4}>
+                                    <Typography color="inherit" sx={{textDecoration: 'underline'}}>All relics</Typography>
+                                    <Typography color="inherit">All time: {statistics.relics.opened.total.all_time}</Typography>
+                                    <Typography color="inherit">Today: {statistics.relics.opened.total.today}</Typography>
+                                    <Typography color="inherit">Avg: {statistics.relics.opened.total.daily_avg}/day</Typography>
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <Typography color="inherit" sx={{textDecoration: 'underline'}}>Vaulted relics</Typography>
+                                    <Typography color="inherit">All time: {statistics.relics.opened.vaulted.all_time}</Typography>
+                                    <Typography color="inherit">Today: {statistics.relics.opened.vaulted.today}</Typography>
+                                    <Typography color="inherit">Avg: {statistics.relics.opened.vaulted.daily_avg}/day</Typography>
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <Typography color="inherit" sx={{textDecoration: 'underline'}}>Tracked relics</Typography>
+                                    <Typography color="inherit">All time: {statistics.relics.opened.tracked.all_time}</Typography>
+                                    <Typography color="inherit">Today: {statistics.relics.opened.tracked.today}</Typography>
+                                    <Typography color="inherit">Avg: {statistics.relics.opened.tracked.daily_avg}/day</Typography>
+                                </Grid>
+                                <Grid item xs={12}></Grid>
+                                <Grid item xs={12}>
+                                    <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top Relics Opened</Typography>
+                                    <TableContainer sx={{ maxHeight: 350, maxWidth: 250 }}>
+                                        <Table>
+                                            <TableHead>
+                                            <TableRow>
+                                                <TableCell>Relic</TableCell>
+                                                <TableCell align="right">Opened</TableCell>
+                                            </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                            {sortObject(statistics.relics.opened_distr,'opened').map((relic) => (
+                                                <TableRow
+                                                key={relic.key + '_top_opened'}
+                                                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                                >
+                                                <TableCell component="th" scope="row">
+                                                    {convertUpper(relic.key.replace('_relic',''))}
+                                                </TableCell>
+                                                <TableCell align="right">{relic.value}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                        <Grid item xs={8}>
+                            <Typography color="inherit" style={{fontSize: '32px'}}>Trades</Typography>
+                            <Grid container spacing={2} justifyContent="center">
+                                <Grid item xs={4}>
+                                    <Typography color="inherit" sx={{textDecoration: 'underline'}}>Plat Earned</Typography>
+                                    <Typography color="inherit">All time: {statistics.trades.plat.gained.all_time}p</Typography>
+                                    <Typography color="inherit">Today: {statistics.trades.plat.gained.today}p</Typography>
+                                    <Typography color="inherit">Avg: {statistics.trades.plat.gained.daily_avg}p/day</Typography>
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <Typography color="inherit" sx={{textDecoration: 'underline'}}>Plat Spent</Typography>
+                                    <Typography color="inherit">All time: {statistics.trades.plat.spent.all_time}p</Typography>
+                                    <Typography color="inherit">Today: {statistics.trades.plat.spent.today}p</Typography>
+                                    <Typography color="inherit">Avg: {statistics.trades.plat.spent.daily_avg}p/day</Typography>
+                                </Grid>
+                                <Grid item xs={4}>
+                                </Grid>
+                                <Grid item xs={12}></Grid>
+                                <Grid item xs={4}>
+                                    <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top Items sold</Typography>
+                                    <TableContainer sx={{ maxHeight: 350, maxWidth: 370}}>
+                                        <Table>
+                                            <TableHead>
+                                            <TableRow>
+                                                <TableCell>Item</TableCell>
+                                                <TableCell align="right">Quantity</TableCell>
+                                            </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                            {sortObject(statistics.trades.items.sold).map((item:any) => (
+                                                <TableRow
+                                                key={item.key + '_top_sold'}
+                                                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                                >
+                                                <TableCell component="th" scope="row">
+                                                    {convertUpper(item.key)}
+                                                </TableCell>
+                                                <TableCell align="right">{item.value}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top Items bought</Typography>
+                                    <TableContainer sx={{ maxHeight: 350, maxWidth: 370 }}>
+                                        <Table>
+                                            <TableHead>
+                                            <TableRow>
+                                                <TableCell>Item</TableCell>
+                                                <TableCell align="right">Quantity</TableCell>
+                                            </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                            {sortObject(statistics.trades.items.bought).map((item:any) => (
+                                                <TableRow
+                                                key={item.key + '_top_bought'}
+                                                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                                >
+                                                <TableCell component="th" scope="row">
+                                                    {convertUpper(item.key)}
+                                                </TableCell>
+                                                <TableCell align="right">{item.value}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top sets sold</Typography>
+                                    <TableContainer sx={{ maxHeight: 350, maxWidth: 370 }}>
+                                        <Table>
+                                            <TableHead>
+                                            <TableRow>
+                                                <TableCell>Set</TableCell>
+                                                <TableCell align="right">Quantity</TableCell>
+                                            </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                            {sortObject(statistics.trades.items.sets_sold).map((item:any) => (
+                                                <TableRow
+                                                key={item.key + '_top_sets_sold'}
+                                                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                                                >
+                                                <TableCell component="th" scope="row">
+                                                    {convertUpper(item.key)}
+                                                </TableCell>
+                                                <TableCell align="right">{item.value}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Grid>
                 </Grid>
             </Grid>
         )
     }
 }
 
-
-interface ITopBarProps {
-}
-interface ITopBarState {
-    alertOpen: boolean
-    alertTitle: string,
-    alertContent: string
-}
-
-class TopBar extends React.Component<ITopBarProps,ITopBarState> {
-    constructor(props:any) {
-      super(props);
-      this.state = {
-        alertOpen: false,
-        alertTitle: '',
-        alertContent: ''
-      };
-    }
-    
-    componentDidMount() {
-        event.on('importGDPRResponse', (arg) => {
-            this.setState({alertOpen: true, alertTitle: arg.message.title, alertContent: arg.message.content})
-        })
-    }
-
-    handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        var file_paths:Array<string> = []
-        Array.from(e.target.files as FileList).forEach(file => {
-            if (file.type != 'text/plain') {
-                this.setState({alertOpen: true, alertTitle: 'IMPORT GDPR', alertContent: 'Please only select .txt file(s)'})
-                return
-            } else file_paths.push(file.path)
-        })
-        event.emit('importGDPRRequest',file_paths)
-    }
-
-    alertHandleClose = () => {
-        this.setState({alertOpen: false, alertTitle: '', alertContent: ''})
-    }
-
-    render() {
-        return (
-            <React.Fragment>
-                <label htmlFor="gdpr-file">
-                    <Input style={{display: 'none'}} id="gdpr-file" type="file" inputProps={{accept: ".txt", multiple: true}} onChange={this.handleFileChange}/>
-                    <Button variant="contained" startIcon={<FileDownload />} component="span">
-                        Import GDPR
-                    </Button>
-                </label>
-                <Dialog open={this.state.alertOpen} onClose={this.alertHandleClose}>
-                    <DialogTitle>
-                    {this.state.alertTitle}
-                    </DialogTitle>
-                    <DialogContent>
-                    <DialogContentText>
-                        {this.state.alertContent}
-                    </DialogContentText>
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={this.alertHandleClose}>Ok</Button>
-                    </DialogActions>
-                </Dialog>
-            </React.Fragment>
-        )
-    }
-}
-
-
+/*
 function getRelicUrl(str:string) {
     str = str.toLowerCase().replace(/ /g,'_')
     return (str.split('_'))[0] + '_' + (str.split('_'))[1] + '_relic'
-}
+}*/
 
 function convertUpper(str:string) {
     return str.replace(/_/g, " ").replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase())

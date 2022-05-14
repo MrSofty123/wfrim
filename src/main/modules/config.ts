@@ -13,6 +13,7 @@ interface Iconfig {
     inv_loths_val: number,
     inv_upths_col: string,
     inv_loths_col: string,
+    startUpOnBoot: boolean
 }
 
 const config_default:Iconfig = {
@@ -22,6 +23,7 @@ const config_default:Iconfig = {
     inv_loths_val: 0,
     inv_upths_col: '#43e6a2',
     inv_loths_col: '#4783ad',
+    startUpOnBoot: false
 }
 var config:Iconfig= config_default
 

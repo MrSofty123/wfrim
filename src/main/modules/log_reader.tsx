@@ -10,6 +10,33 @@ const eeLogPath = Os.homedir() + '/AppData/Local/Warframe/EE.log'
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
 
 var eeLogContents = ''
+
+interface Iitems_list {
+    [key: string]: {
+        item_url: string,
+        sell_price: string,
+        rewards: {
+            common: Array<string>,
+            uncommon: Array<string>,
+            rare: Array<string>,
+        },
+        relics: Array<{link: string, name: string}>,
+        tags: Array<string>,
+        vault_status: string,
+        items_in_set: Array<{url_name: string, quantity_for_set: number}>,
+    }
+}
+
+var items_list:Iitems_list = {
+}
+
+mainEvent.on('itemsListFetch', (data) => {
+    // convert into keys for faster access
+    data.forEach((item:any) => {
+        items_list[item.item_url as keyof Iitems_list] = item
+    })
+})
+
 /*******************timerVars********************/
 var getStatisticsTimer:ReturnType<typeof setTimeout>;
 var logReadTimer:ReturnType<typeof setTimeout>;
@@ -277,7 +304,7 @@ function logRead () {
                 relicEquipped = temp[11] + "_" + temp[12] + "_relic"
                 refinement = line.toLowerCase().match('radiant') ? 'radiant' : (line.toLowerCase().match('flawless') ? 'flawless' : (line.toLowerCase().match('exceptional') ? 'exceptional':'intact'))
                 // Commit event to file
-                logfile.mission_initialize.push({log_seq: log_seq, complete_seq: complete_seq,client_lang: client_lang, relicEquipped: relicEquipped, refinement: refinement, status: "unsuccessful", timestamp: new Date(), complete_timestamp: -1})
+                logfile.mission_initialize.push({log_seq: log_seq, complete_seq: complete_seq,client_lang: client_lang, relicEquipped: relicEquipped, refinement: refinement, fissureNode: {seq: 'N/A yet', mission: {}}, status: "unsuccessful", timestamp: new Date(), complete_timestamp: -1})
                 continue
             }
             eventHandled = false
@@ -294,7 +321,7 @@ function logRead () {
                 }
                 if (eventHandled) continue
                 logChanged = true
-                console.log('found gotRewards at '+ log_seq)
+                console.log('found gotRewards at '+ complete_seq)
                 // Find the recent unsuccessful event
                 for (const [index,mission] of logfile.mission_initialize.entries()) {
                     if (mission.complete_seq=="N/A Yet") {      
@@ -309,6 +336,29 @@ function logRead () {
                 wfMissionHandler(relicEquipped)
                 //gosub filterRelics
                 //SetTimer, updateWFLoggerInfo, -2000
+                continue
+            }
+            eventHandled = false
+            var fissureNode = {seq: 'N/A yet', mission: {}}
+            if (line.match('Sys Info: Client loaded')) {
+                fissureNode.seq = "s_" + (line.split(' '))[0]
+                for (const [index,val] of logfile.mission_initialize.entries()) {
+                    if (val.fissureNode.seq==fissureNode.seq) {       // Event already handled
+                        eventHandled = true
+                        break
+                    }
+                }
+                if (eventHandled) continue
+                logChanged = true
+                console.log('found mission loading at '+ fissureNode.seq)
+                fissureNode.mission = JSON.parse((line.split(' '))[5])
+                // Find the recent unsuccessful event
+                for (const [index,mission] of logfile.mission_initialize.entries()) {
+                    if (mission.complete_seq=="N/A Yet") {
+                        logfile.mission_initialize[index].fissureNode = fissureNode
+                        break
+                    }
+                }
                 continue
             }
         }
@@ -376,61 +426,44 @@ function combineFilesFunc() {
 
 function wfTradeHandler(offeringItems:Array<string>,receivingItems:Array<string>)
 {
-    fs.readFile(appFolder + 'relicsDB.json','utf-8',(err,data) => {
-        if (err) emitError('Error reading file', err.stack)
-        else {
-            var relicDB:Array<any> = JSON.parse(data.replace(/^\uFEFF/, ''))
+    const relicsDB = JSON.parse((fs.readFileSync(appFolder + 'relicsDB.json','utf-8')).replace(/^\uFEFF/, ''))
 
-            offeringItems.forEach(item => {
-                const relicName = convertUpper(item.toLowerCase().replace('_relic_[radiant]','').replace('_relic_[exceptional]','').replace('_relic_[flawless]','').replace('_relic',''))
-                console.log(relicName)
-                relicDB.map((relic,index) => {
-                    if (relic.name == relicName) {
-                        relicDB[index].quantity--
-                        console.log(JSON.stringify(relicDB[index]))
-                    }
-                })
-            })
-
-            receivingItems.forEach(item => {
-                const relicName = convertUpper(item.toLowerCase().replace('_relic_[radiant]','').replace('_relic_[exceptional]','').replace('_relic_[flawless]','').replace('_relic',''))
-                console.log(relicName)
-                relicDB.map((relic,index) => {
-                    if (relic.name == relicName) {
-                        relicDB[index].quantity++
-                        console.log(JSON.stringify(relicDB[index]))
-                    }
-                })
-            })
-            fs.writeFile(appFolder + 'relicsDB.json', JSON.stringify(relicDB), (err) => {
-                if (err) emitError('Error writing log file', err.stack)
-            });
-        }
+    offeringItems.forEach(item => {
+        const relicName = convertUpper(item.toLowerCase().replace('_relic_[radiant]','').replace('_relic_[exceptional]','').replace('_relic_[flawless]','').replace('_relic',''))
+        relicsDB.map((relic:any,index:any) => {
+            if (relic.name == relicName) relicsDB[index].quantity--
+        })
     })
+
+    receivingItems.forEach(item => {
+        const relicName = convertUpper(item.toLowerCase().replace('_relic_[radiant]','').replace('_relic_[exceptional]','').replace('_relic_[flawless]','').replace('_relic',''))
+        relicsDB.map((relic:any,index:any) => {
+            if (relic.name == relicName) relicsDB[index].quantity++
+        })
+    })
+    
+    fs.writeFileSync(appFolder+'relicsDB.json',JSON.stringify(relicsDB))
 }
 function wfMissionHandler(relicEquipped:string)
 {
-    fs.readFile(appFolder + 'relicsDB.json','utf-8',(err,data) => {
-        if (err) emitError('Error reading file', err.stack)
-        else {
-            var relicDB:Array<any> = JSON.parse(data.replace(/^\uFEFF/, ''))
-            const relicName = convertUpper(relicEquipped.toLowerCase().replace('_relic',''))
-            console.log(relicName)
-            relicDB.map((relic,index) => {
-                if (relic.name == relicName) {
-                    relicDB[index].quantity--
-                    console.log(JSON.stringify(relicDB[index]))
-                }
-            })
-            fs.writeFile(appFolder + 'relicsDB.json', JSON.stringify(relicDB), (err) => {
-                if (err) emitError('Error writing log file', err.stack)
-            });
+    const relicsDB = JSON.parse((fs.readFileSync(appFolder + 'relicsDB.json','utf-8')).replace(/^\uFEFF/, ''))
+    const relicName = convertUpper(relicEquipped.toLowerCase().replace('_relic',''))
+    relicsDB.map((relic:any,index:number) => {
+        if (relic.name == relicName) {
+            relicsDB[index].quantity--
+            console.log(JSON.stringify(relicsDB[index]))
         }
     })
+    fs.writeFileSync(appFolder+'relicsDB.json',JSON.stringify(relicsDB))
 }
 
 
 function getStatistics() {
+    if (Object.keys(items_list).length == 0) {
+        clearTimeout(getStatisticsTimer)
+        getStatisticsTimer = setTimeout(getStatistics, 500)
+        return
+    }
     fs.readdir(appFolder + 'logs', (err,files) => {
         if (err) emitError('Error getting files', err.stack)
         else {
@@ -449,7 +482,7 @@ function getStatistics() {
                 } catch (e) {}
             }
             console.log('Emitting: statisticsFetch' )
-            mainEvent.emit('statisticsFetch', rawStatistics)
+            mainEvent.emit('statisticsFetch', computeStats(rawStatistics))
         }
     })
 }
@@ -479,6 +512,11 @@ function ensureDirectoryExistence(filePath:string) {
 
 function convertUpper(str:string) {
     return str.replace(/_/g, " ").replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase())
+}
+
+function getRelicUrl(str:string) {
+    str = str.toLowerCase().replace(/ /g,'_')
+    return (str.split('_'))[0] + '_' + (str.split('_'))[1] + '_relic'
 }
 
 
@@ -652,3 +690,269 @@ ipcMain.on('importSRBRequest', (event,file_paths:any) => {
         content: `All data imported.`
     }})
 })
+
+
+function computeStats(rawStatistics:any) {
+    interface Istatistics {
+        relics: {
+            opened: {
+                total: {
+                    all_time: number,
+                    today: number,
+                    daily_avg: number
+                    runsPerDay: {[key: string]: Array<object>}
+                },
+                vaulted: {
+                    all_time: number,
+                    today: number,
+                    daily_avg: number
+                    runsPerDay: {[key: string]: Array<object>}
+                },
+                tracked: {
+                    all_time: number,
+                    today: number,
+                    daily_avg: number
+                    runsPerDay: {[key: string]: Array<object>}
+                }
+            },
+            opened_distr: {[key: string]: {opened: 0}},
+            opened_sorted: string[]
+        },
+        trades: {
+            plat: {
+                spent: {
+                    all_time: number,
+                    today: number,
+                    daily_avg: number,
+                    spentPerDay: {[key: string]: number}
+                },
+                gained: {
+                    all_time: number,
+                    today: number,
+                    daily_avg: number,
+                    gainedPerDay: {[key: string]: number}
+                }
+            },
+            items: {
+                sold: {[key: string]: number},
+                bought: {[key: string]: number},
+                sets_sold: {[key: string]: number},
+            }
+        }
+    }
+    var statistics:Istatistics = {
+        relics: {
+            opened: {
+                total: {
+                    all_time: 0,
+                    today: 0,
+                    daily_avg: 0,
+                    runsPerDay: {}
+                },
+                vaulted: {
+                    all_time: 0,
+                    today: 0,
+                    daily_avg: 0,
+                    runsPerDay: {}
+                },
+                tracked: {
+                    all_time: 0,
+                    today: 0,
+                    daily_avg: 0,
+                    runsPerDay: {}
+                }
+            },
+            opened_distr: {},
+            opened_sorted: []
+        },
+        trades: {
+            plat: {
+                spent: {
+                    all_time: 0,
+                    today: 0,
+                    daily_avg: 0,
+                    spentPerDay: {}
+                },
+                gained: {
+                    all_time: 0,
+                    today: 0,
+                    daily_avg: 0,
+                    gainedPerDay: {}
+                }
+            },
+            items: {
+                sold: {},
+                bought: {},
+                sets_sold: {}
+            }
+        }
+    }
+    rawStatistics.mission_initialize.forEach((mission:any,index:number) => {
+        if (mission.status == 'successful') {
+            mission.relicEquipped = mission.relicEquipped.toLowerCase()
+            mission.timestamp = new Date(mission.timestamp).getTime()
+            // opened_distr
+            if (!statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)]) statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)] = {opened: 0}
+            statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)].opened++
+            // Total Opened 
+                // all time
+                statistics.relics.opened.total.all_time++
+                // today
+                if (mission.timestamp >= new Date().setHours(0,0,0,0)) statistics.relics.opened.total.today++
+                // runsPerDay
+                if (mission.timestamp > 100000) {
+                    if (!statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
+                    statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
+                }
+            // Vaulted Opened
+            const vault_status = items_list[getRelicUrl(mission.relicEquipped)]?.vault_status
+            if (vault_status == 'V' || vault_status == 'B' || vault_status == 'P') {
+                // all time
+                statistics.relics.opened.vaulted.all_time++
+                // today
+                if (mission.timestamp >= new Date().setHours(0,0,0,0)) statistics.relics.opened.vaulted.today++
+                // runsPerDay
+                if (mission.timestamp > 100000) {
+                    if (!statistics.relics.opened.vaulted.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.vaulted.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
+                    statistics.relics.opened.vaulted.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
+                }
+            }
+            // Tracked Opened
+            const relicsDB = JSON.parse((fs.readFileSync(appFolder + 'relicsDB.json','utf-8')).replace(/^\uFEFF/, ''))
+            for (const relic of relicsDB) {
+                if (getRelicUrl(relic.name) == getRelicUrl(mission.relicEquipped)) {
+                    // all time
+                    statistics.relics.opened.tracked.all_time++
+                    // today
+                    if (mission.timestamp >= new Date().setHours(0,0,0,0)) statistics.relics.opened.tracked.today++
+                    // runsPerDay
+                    if (mission.timestamp > 100000) {
+                        if (!statistics.relics.opened.tracked.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.tracked.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
+                        statistics.relics.opened.tracked.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
+                    }
+                    break
+                }
+            }
+        }
+    })
+    // Total - daily_avg
+    var avg = 0
+    for (const key in statistics.relics.opened.total.runsPerDay) {
+        avg += statistics.relics.opened.total.runsPerDay[key].length
+    }
+    statistics.relics.opened.total.daily_avg = Number((avg / Object.keys(statistics.relics.opened.total.runsPerDay).length).toFixed(1))
+    // Vaulted - daily_avg
+    var avg = 0
+    for (const key in statistics.relics.opened.vaulted.runsPerDay) {
+        avg += statistics.relics.opened.vaulted.runsPerDay[key].length
+    }
+    statistics.relics.opened.vaulted.daily_avg = Number((avg / Object.keys(statistics.relics.opened.vaulted.runsPerDay).length).toFixed(1))
+    // Tracked - daily_avg
+    var avg = 0
+    for (const key in statistics.relics.opened.tracked.runsPerDay) {
+        avg += statistics.relics.opened.tracked.runsPerDay[key].length
+    }
+    statistics.relics.opened.tracked.daily_avg = Number((avg / Object.keys(statistics.relics.opened.tracked.runsPerDay).length).toFixed(1))
+    statistics.relics.opened_sorted = Object.keys(statistics.relics.opened_distr).sort(function(a,b){return statistics.relics.opened_distr[b].opened-statistics.relics.opened_distr[a].opened})
+
+    rawStatistics.trades.forEach((trade:any) => {
+        trade.timestamp = new Date(trade.timestamp).getTime()
+        if (trade.status == 'successful' && !trade.deprecated) {
+            try {
+                trade.offeringItems.forEach((item:string) => {
+                    item = item.toLowerCase().replace('_chassis_blueprint', '_chassis').replace('_systems_blueprint', '_systems').replace('_neuroptics_blueprint', '_neuroptics').replace('_wings_blueprint', '_wings').replace('_harness_blueprint', '_harness')
+                    if (item.match('platinum')) {
+                        // all time
+                        statistics.trades.plat.spent.all_time += Number((item.split('_'))[2])
+                        // today
+                        if (trade.timestamp >= new Date().setHours(0,0,0,0)) statistics.trades.plat.spent.today += Number((item.split('_'))[2])
+                        // tradesPerDay
+                        if (trade.timestamp > 100000) {
+                            if (!statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))]) statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] = 0
+                            statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] += Number((item.split('_'))[2])
+                        }
+                    }
+                    // items quantity sold
+                    if (!item.match('platinum')) {
+                        if (!statistics.trades.items.sold[item]) statistics.trades.items.sold[item] = 0
+                        statistics.trades.items.sold[item]++
+                        // check if full set being sold
+                        if (item.match(/_blueprint$/)) {
+                            // get list of components
+                            var items_in_set:any = {}
+                            if (items_list[item]?.items_in_set.length > 0) {
+                                items_list[item].items_in_set.forEach(component => {
+                                    if (!component.url_name.match(/_set$/)) {
+                                        items_in_set[component.url_name] = {
+                                            url_name: component.url_name,
+                                            quantity_for_set: component.quantity_for_set,
+                                            quantity_traded: 0
+                                        }
+                                    }
+                                })
+                            }
+                            // verify all quantities
+                            trade.offeringItems.forEach((item1:string) => {
+                                item1 = item1.toLowerCase().replace('_chassis_blueprint', '_chassis').replace('_systems_blueprint', '_systems').replace('_neuroptics_blueprint', '_neuroptics')
+                                items_in_set[item1]? items_in_set[item1].quantity_traded++:false
+                            })
+                            var setTraded = true
+                            for (const key in items_in_set) {
+                                if (items_in_set[key].quantity_traded != items_in_set[key].quantity_for_set)
+                                    setTraded = false
+                            }
+                            if (setTraded) {
+                                var str = item.replace(/_blueprint$/, '_set')
+                                if (!statistics.trades.items.sets_sold[str]) statistics.trades.items.sets_sold[str] = 0
+                                statistics.trades.items.sets_sold[str]++
+                            }
+                        }
+                    }
+                })
+            } catch (e) {}
+            try {
+                trade.receivingItems.forEach((item:string) => {
+                    item = item.toLowerCase().replace('_chassis_blueprint', '_chassis').replace('_systems_blueprint', '_systems').replace('_neuroptics_blueprint', '_neuroptics')
+                    if (item.match('platinum')) {
+                        // all time
+                        statistics.trades.plat.gained.all_time += Number((item.split('_'))[2])
+                        // today
+                        if (trade.timestamp >= new Date().setHours(0,0,0,0)) statistics.trades.plat.gained.today += Number((item.split('_'))[2])
+                        // tradesPerDay
+                        if (trade.timestamp > 100000) {
+                            if (!statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))]) statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] = 0
+                            statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] += Number((item.split('_'))[2])
+                        }
+                    }
+                    // items quantity bought
+                    if (!item.match('platinum')) {
+                        if (!statistics.trades.items.bought[item]) statistics.trades.items.bought[item] = 0
+                        statistics.trades.items.bought[item]++
+                    }
+                })
+            } catch (e) {}
+        }
+    })
+    //console.log(JSON.stringify(statistics.trades.items.sets_sold))
+
+    // Plat Spent - daily_avg
+    var avg = 0
+    for (const key in statistics.trades.plat.spent.spentPerDay) {
+        avg += statistics.trades.plat.spent.spentPerDay[key]
+    }
+    statistics.trades.plat.spent.daily_avg = Number((avg / Object.keys(statistics.trades.plat.spent.spentPerDay).length).toFixed(1))
+    // Plat Gained - daily_avg
+    var avg = 0
+    for (const key in statistics.trades.plat.gained.gainedPerDay) {
+        avg += statistics.trades.plat.gained.gainedPerDay[key]
+    }
+    statistics.trades.plat.gained.daily_avg = Number((avg / Object.keys(statistics.trades.plat.gained.gainedPerDay).length).toFixed(1))
+    const relicsDB = JSON.parse((fs.readFileSync(appFolder + 'relicsDB.json','utf-8')).replace(/^\uFEFF/, ''))
+    relicsDB.forEach((relic:any,index:number) => {
+        if (statistics.relics.opened_distr[getRelicUrl(relic.name)]) relicsDB[index].opened =  statistics.relics.opened_distr[getRelicUrl(relic.name)].opened
+        else relicsDB[index].opened = 0
+    })
+    fs.writeFileSync(appFolder+'relicsDB.json',JSON.stringify(relicsDB))
+    //console.log(JSON.stringify(sortObject(statistics.trades.items.sold)))
+    return statistics
+}

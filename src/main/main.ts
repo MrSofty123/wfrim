@@ -35,6 +35,58 @@ if (!fs.existsSync(appFolder + 'items_list.json')) fs.writeFileSync(appFolder + 
 if (!fs.existsSync(appFolder + 'config.json')) fs.writeFileSync(appFolder + 'config.json','{}')
 if (!fs.existsSync(appFolder + 'logs/full_log.json')) fs.writeFileSync(appFolder + 'logs/full_log.json',JSON.stringify({mission_initialize: [], trades: []}))
 if (!fs.existsSync(appFolder + 'logs/gdpr_log.json')) fs.writeFileSync(appFolder + 'logs/gdpr_log.json',JSON.stringify({mission_initialize: [], trades: []}))
+
+
+/***********************Preprocess script*****************/
+var change = false
+var fileContent = JSON.parse((fs.readFileSync(appFolder + 'relicsDB.json','utf-8')).replace(/^\uFEFF/, ''))
+fileContent.forEach((item:any, index:number) => {
+  if (!item.hasOwnProperty('display')) {
+    change = true
+    fileContent[index].display = true
+  }
+  if (typeof item.quantity != 'number') {
+    change = true
+    fileContent[index].quantity = Number(item.quantity)
+  }
+})
+if (change) fs.writeFileSync(appFolder + 'relicsDB.json', JSON.stringify(fileContent))
+//
+var change = false
+var fileContent = JSON.parse((fs.readFileSync(appFolder + 'logs/full_log.json','utf-8')).replace(/^\uFEFF/, ''))
+var index = fileContent.mission_initialize.length - 1
+while (index >= 0) {
+  var item = fileContent.mission_initialize[index]
+  if (!item.hasOwnProperty('client_lang')) {
+    change = true
+    fileContent.mission_initialize[index].client_lang = ''
+  }
+  if (!item.hasOwnProperty('refinement')) {
+    change = true
+    fileContent.mission_initialize[index].refinement = ''
+  }
+  if (!item.hasOwnProperty('fissureNode')) {
+    change = true
+    fileContent.mission_initialize[index].fissureNode = {seq: '', mission: {}}
+  }
+  if (item.status == 'unsuccessful') {
+    change = true
+    fileContent.mission_initialize.splice(index,1)
+  }
+  index--
+}
+var index = fileContent.trades.length - 1
+while (index >= 0) {
+  var item = fileContent.trades[index]
+  if (item.status == 'unsuccessful') {
+    change = true
+    fileContent.trades.splice(index,1)
+  }
+  index--
+}
+if (change) fs.writeFileSync(appFolder + 'logs/full_log.json', JSON.stringify(fileContent))
+/***************************************************************/
+
 /*
 fs.openSync(appFolder + 'relicsDB.json','r',function(notexists, f) {
     if (notexists) fs.writeFileSync(appFolder + 'relicsDB.json', "[]");
@@ -56,6 +108,7 @@ import { resolveHtmlPath } from './util';
 import './ipcHandler'
 import './modules/log_reader'
 import {mainEvent} from './eventHandler'
+import { argv } from 'process';
 
 
 
@@ -180,6 +233,14 @@ app
     });
   })
   .catch(console.log);
+
+mainEvent.on('toggleStartUp', (arg) => {
+  app.setLoginItemSettings({
+    openAtLogin: arg,
+    path: app.getPath('exe')
+  })
+})
+
 
 //------------------ autoUpdater HANDLES --------------------
 //------------------ mainEvent HANDLES --------------------

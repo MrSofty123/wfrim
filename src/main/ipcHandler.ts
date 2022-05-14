@@ -16,7 +16,7 @@ const relicsDBWatcher = fs.watch(appFolder + 'relicsDB.json',(event,filename) =>
     if (event == 'change') {
         console.log('file changed: ' + appFolder + 'relicsDB.json')
         clearTimeout(relicsDBTimer)
-        relicsDBTimer = setTimeout(relicsDBReader, 500)
+        relicsDBTimer = setTimeout(relicsDBReader, 1000)
     }
 })
 mainEvent.on('closeFileWatchers', () => {
@@ -27,6 +27,11 @@ mainEvent.on('closeFileWatchers', () => {
 ipcMain.on('postRelicDB', (event,arg) => {
     console.log('Main request: postRelicDB')
     updateRelicDB(arg)
+})
+
+ipcMain.on('toggleStartUp', (event,arg) => {
+    console.log('Main request: toggleStartUp')
+    mainEvent.emit('toggleStartUp', arg)
 })
 
 ipcMain.on('ipc-example', async (event, arg) => {
@@ -42,7 +47,10 @@ function emitError(title:string,err:any) {
 function relicsDBReader() {
     fs.readFile(appFolder + 'relicsDB.json','utf8',(err,data) => {
         if (err) emitError(`Error reading file ${appFolder + 'relicsDB.json'}`,err.stack? err.stack:err)
-        else mainEvent.emit('relicDBFetch', JSON.parse(data.replace(/^\uFEFF/, '')))
+        else {
+            console.log('Main emitting: relicDBFetch')
+            mainEvent.emit('relicDBFetch', JSON.parse(data.replace(/^\uFEFF/, '')))
+        }
     })
 }
 function updateRelicDB(relicDB:Array<object>) {

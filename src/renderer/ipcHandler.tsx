@@ -36,6 +36,9 @@ event.on('postRelicDB', (data) => {
 event.on('postConfig', (data) => {
     window.electron.ipcRenderer.sendMain('postConfig', data);
 })
+event.on('toggleStartUp', (arg) => {
+    window.electron.ipcRenderer.sendMain('toggleStartUp', arg);
+})
 
 event.on('importGDPRRequest', (data) => {
     window.electron.ipcRenderer.sendMain('importGDPRRequest', data);

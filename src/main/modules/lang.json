@@ -8,13 +8,13 @@
             "replace": "Relic"
         },{
             "match": "光辉",
-            "replace": "[RADIANT]"
+            "replace": "RADIANT"
         },{
             "match": "无瑕",
-            "replace": "[FLAWLESS]"
+            "replace": "FLAWLESS"
         },{
             "match": "优良",
-            "replace": "[EXCEPTIONAL]"
+            "replace": "EXCEPTIONAL"
         },{
             "match": "古纪",
             "replace": "Lith"
@@ -50,13 +50,13 @@
             "replace": "Relic"
         },{
             "match": "光輝",
-            "replace": "[RADIANT]"
+            "replace": "RADIANT"
         },{
             "match": "無瑕",
-            "replace": "[FLAWLESS]"
+            "replace": "FLAWLESS"
         },{
             "match": "優良",
-            "replace": "[EXCEPTIONAL]"
+            "replace": "EXCEPTIONAL"
         },{
             "match": "古紀",
             "replace": "Lith"
@@ -95,13 +95,13 @@
         "replace": "Relic"
         },{
         "match": "ÉCLATANTE",
-        "replace": "[RADIANT]"
+        "replace": "RADIANT"
         },{
         "match": "IMPECCABLE",
-        "replace": "[FLAWLESS]"
+        "replace": "FLAWLESS"
         },{
         "match": "EXCEPTIONNELLE",
-        "replace": "[EXCEPTIONAL]"
+        "replace": "EXCEPTIONAL"
         },{
         "match": "L'échange a réussi!",
         "replace": "The trade was successful!"

@@ -36,6 +36,7 @@ import axi from '../../../assets/axi.png'
 import Repeatable from 'react-repeatable'
 import {convertUpper,dynamicSort} from './extras'
 import {config} from './config'
+import { KeyFormat } from 'crypto';
 
 interface relicProps {
     name: string,
@@ -83,7 +84,6 @@ interface IInventoryProps {
 interface IInventoryState {
     updateCards: boolean,
     searchRelic: Array<string>,
-    relicDB: Array<relicProps>
 }
 
 class Inventory extends React.Component<IInventoryProps,IInventoryState> {
@@ -91,19 +91,17 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
       super(props);
       this.state = {
         updateCards: false,
-        searchRelic: [],
-        relicDB: relicDB
+        searchRelic: []
       };
     }
     
     componentDidMount() {
         event.on('relicDBFetch', (data) => {
             relicDB = []
-            relicDB = typeof data == 'object' ? data:JSON.parse(data as string)
-            this.setState({relicDB: []}, () => this.setState({relicDB: relicDB}));
-            //console.log(JSON.stringify(relicDB))
-            //if (!inventory) setTimeout(relicDBFetch, 1000);
-            //else 
+            this.setState({updateCards: !this.state.updateCards}, () => {
+                relicDB = typeof data == 'object' ? data:JSON.parse(data as string)
+                this.setState({updateCards: !this.state.updateCards})
+            });
         });
         event.on('itemsListFetch', (data) => {
             this.setState({updateCards: !this.state.updateCards});
@@ -127,16 +125,14 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
             <Grid container spacing={4}>
                 <CssBaseline/>
                 <Grid item xs={12}>
-                    <AddRelic childCallback={this.childCallback}/>
+                    <AddRelic childCallback={this.childCallback} searchRelic={this.state.searchRelic}/>
                 </Grid>
                 <Grid item xs={12}>
-                    <div>
-                    <Grid container spacing={1}>
+                    <Grid container spacing={1} key="relicsGrid">
                         {this.state.updateCards}
-                        {this.state.relicDB.map((relic:any, i:number) => {
+                        {relicDB.map((relic:relicProps, i:number) => {
                             //console.log('Creating card ' + relic.name)
-                            const arr = relic.name.split(' ')
-                            if (showTiers[arr[0].toLowerCase() as keyof IshowTiers]) {
+                            if (showTiers[(relic.name.split(' '))[0].toLowerCase() as keyof IshowTiers]) {
                                 if (relic.display || !relic.hasOwnProperty("display"))
                                     if (this.state.searchRelic.length == 0 || this.state.searchRelic.includes(relic.name))
                                         return <Grid item key={`card${relic.name.replace(/ /g,'_')}`}>
@@ -145,7 +141,6 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
                             }
                         })}
                     </Grid>
-                    </div>
                 </Grid>
             </Grid>
         )
@@ -276,7 +271,7 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
                                 <Grid item xs={2}></Grid>
                             </Grid>
                             <Typography variant="body2">
-                                <Grid container spacing={2} justifyContent="center" alignItems="center">
+                                <Grid container spacing={1} justifyContent="center" alignItems="center">
                                     <Grid item xs={6}>
                                         Owned: {this.state.quantity}
                                     </Grid>
@@ -304,6 +299,7 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
 
 interface IAddRelicProps {
     childCallback: Function
+    searchRelic: Array<string>
 }
 interface IAddRelicState {
     open: boolean,
@@ -436,14 +432,28 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
         this.props.childCallback('updateCards',null)
     }
 
+    totalRelics = () => {
+        var total = 0
+        {relicDB.map((relic:relicProps, i:number) => {
+            if (showTiers[(relic.name.split(' '))[0].toLowerCase() as keyof IshowTiers]) {
+                if (relic.display || !relic.hasOwnProperty("display"))
+                    if (this.props.searchRelic.length == 0 || this.props.searchRelic.includes(relic.name))
+                        total += Number(relic.quantity)
+            }
+        })}
+        return total
+    }
+
     render() {
         const alert = this.alertValue()
+        const total = this.totalRelics()
         return (<React.Fragment>
             <Grid container spacing={2} justifyContent="center" alignItems="center">
                 <Grid item xs={6}>
                     <Button variant="outlined" onClick={this.handleOpen} startIcon={<AddBox />}>Add Relic</Button>
                 </Grid>
                 <Grid item xs={6} style={{display: 'flex', justifyContent:'flex-end'}}>
+                    <Typography style={{paddingRight: '30px', paddingTop: '25px'}}>Total: {total}</Typography>
                     <TextField variant="standard" id="standard-helperText" label="Search relic" style={{marginRight: "30px",marginBottom:"25px"}} onChange={this.handleChangeSearchRelic} onKeyUp={this.handleSearchRelicKeyUp}/>
                     <FormControlLabel control={<Checkbox defaultChecked={showTiers.lith ? true:false} onChange={this.handleCheckboxChange} id="lith"/>} label="Lith" />
                     <FormControlLabel control={<Checkbox  defaultChecked={showTiers.meso ? true:false} onChange={this.handleCheckboxChange} id="meso"/>} label="Meso" />
