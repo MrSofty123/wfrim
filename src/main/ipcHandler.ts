@@ -34,6 +34,11 @@ ipcMain.on('toggleStartUp', (event,arg) => {
     mainEvent.emit('toggleStartUp', arg)
 })
 
+ipcMain.on('statisticsDateUpdate', (event,arg) => {
+    console.log('Main request: statisticsDateUpdate')
+    mainEvent.emit('statisticsDateUpdate', arg)
+})
+
 ipcMain.on('ipc-example', async (event, arg) => {
     const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
     console.log(msgTemplate(arg));

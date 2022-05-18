@@ -61,6 +61,16 @@ var readbytes = 0
 var eeLogFD:any
 var logPrefix:string = ''
 var client_lang:string = ''
+var defaultStartDate:number = 1364169600000
+var startDate:number = defaultStartDate
+var endDate:number|null = null
+mainEvent.on('statisticsDateUpdate', (data) => {
+    startDate = new Date(data.startDate).getTime()
+    endDate = data.endDate == null ? null : new Date(data.endDate).getTime() + 86400000
+    console.log(startDate,' ',endDate)
+    clearTimeout(getStatisticsTimer)
+    getStatisticsTimer = setTimeout(getStatistics, 10)
+})
 
 getEELogFD()
 function getEELogFD() {
@@ -661,7 +671,7 @@ ipcMain.on('importSRBRequest', (event,file_paths:any) => {
         const logFile = JSON.parse((fs.readFileSync(filepath, 'utf-8')).replace(/^\uFEFF/, ''))
         if (logFile.mission_initialize && logFile.mission_initialize.length) {
             logFile.mission_initialize.forEach((mission:any) => {
-                if (!mission.timestamp) mission.timestamp = 0
+                if (!mission.timestamp) mission.timestamp = Math.round(fs.statSync(filepath).birthtimeMs)  // get file creation time if timestamp is not registered
                 if (!mission.complete_timestamp) mission.complete_timestamp = 0
                 mission.timestamp = String(mission.timestamp).length == 10 ? Number(mission.timestamp)*1000:Number(mission.timestamp)
                 // fix timezone issue from srb
@@ -673,7 +683,7 @@ ipcMain.on('importSRBRequest', (event,file_paths:any) => {
         }
         if (logFile.trades && logFile.trades.length) {
             logFile.trades.forEach((trade:any) => {
-                if (!trade.timestamp) trade.timestamp = 0
+                if (!trade.timestamp) trade.timestamp = Math.round(fs.statSync(filepath).birthtimeMs)  // get file creation time if timestamp is not registered
                 trade.timestamp = String(trade.timestamp).length == 10 ? Number(trade.timestamp)*1000:Number(trade.timestamp)
                 // fix timezone issue from srb
                 trade.timestamp = trade.timestamp + (new Date().getTimezoneOffset() * 60 * 1000)
@@ -700,19 +710,37 @@ function computeStats(rawStatistics:any) {
                     all_time: number,
                     today: number,
                     daily_avg: number
-                    runsPerDay: {[key: string]: Array<object>}
+                    runsPerDay: {[key: string]: Array<object>},
+                    runsDistr: Array<{
+                        timestamp: Date,
+                        total: number,
+                        moving_avg: number,
+                        avg: number,
+                    }>
                 },
                 vaulted: {
                     all_time: number,
                     today: number,
                     daily_avg: number
-                    runsPerDay: {[key: string]: Array<object>}
+                    runsPerDay: {[key: string]: Array<object>},
+                    runsDistr: Array<{
+                        timestamp: Date,
+                        total: number,
+                        moving_avg: number,
+                        avg: number,
+                    }>
                 },
                 tracked: {
                     all_time: number,
                     today: number,
                     daily_avg: number
-                    runsPerDay: {[key: string]: Array<object>}
+                    runsPerDay: {[key: string]: Array<object>},
+                    runsDistr: Array<{
+                        timestamp: Date,
+                        total: number,
+                        moving_avg: number,
+                        avg: number,
+                    }>
                 }
             },
             opened_distr: {[key: string]: {opened: 0}},
@@ -747,19 +775,22 @@ function computeStats(rawStatistics:any) {
                     all_time: 0,
                     today: 0,
                     daily_avg: 0,
-                    runsPerDay: {}
+                    runsPerDay: {},
+                    runsDistr: []
                 },
                 vaulted: {
                     all_time: 0,
                     today: 0,
                     daily_avg: 0,
-                    runsPerDay: {}
+                    runsPerDay: {},
+                    runsDistr: []
                 },
                 tracked: {
                     all_time: 0,
                     today: 0,
                     daily_avg: 0,
-                    runsPerDay: {}
+                    runsPerDay: {},
+                    runsDistr: []
                 }
             },
             opened_distr: {},
@@ -787,10 +818,13 @@ function computeStats(rawStatistics:any) {
             }
         }
     }
+    var min_timestamp = new Date().getTime()
     rawStatistics.mission_initialize.forEach((mission:any,index:number) => {
         if (mission.status == 'successful') {
             mission.relicEquipped = mission.relicEquipped.toLowerCase()
             mission.timestamp = new Date(mission.timestamp).getTime()
+            if (min_timestamp > mission.timestamp) min_timestamp = mission.timestamp
+            if (!(mission.timestamp >= startDate) || !(mission.timestamp <= (endDate == null ? new Date().getTime() : endDate))) return
             // opened_distr
             if (!statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)]) statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)] = {opened: 0}
             statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)].opened++
@@ -836,27 +870,114 @@ function computeStats(rawStatistics:any) {
         }
     })
     // Total - daily_avg
-    var avg = 0
-    for (const key in statistics.relics.opened.total.runsPerDay) {
-        avg += statistics.relics.opened.total.runsPerDay[key].length
-    }
-    statistics.relics.opened.total.daily_avg = Number((avg / Object.keys(statistics.relics.opened.total.runsPerDay).length).toFixed(1))
+        /*
+    var past_runs: Array<number> = []
+    dayDistr.forEach((key) => {
+        /*
+        if (statistics.relics.opened.total.runsPerDay[key]) {
+            past_runs.push(statistics.relics.opened.total.runsPerDay[key].length)
+            statistics.relics.opened.total.runsDistr.push({
+                    timestamp: new Date(key),
+                    total: statistics.relics.opened.total.runsPerDay[key].length,
+                    moving_avg: (statistics.relics.opened.total.runsDistr.length > 0 ? (statistics.relics.opened.total.runsDistr[statistics.relics.opened.total.runsDistr.length - 1].avg + statistics.relics.opened.total.runsPerDay[key].length) / 2:statistics.relics.opened.total.runsPerDay[key].length),
+                    avg: past_runs.reduce( ( p, c ) => p + c, 0 ) / past_runs.length
+            })
+        }
+        else {
+            statistics.relics.opened.total.runsDistr.push({
+                    timestamp: new Date(key),
+                    total: 0,
+                    moving_avg: statistics.relics.opened.total.runsDistr.length > 0 ? statistics.relics.opened.total.runsDistr[statistics.relics.opened.total.runsDistr.length - 1].avg:0,
+                    avg: past_runs.reduce( ( p, c ) => p + c, 0 ) / past_runs.length
+            })
+        }
+        */
+        /*
+        if (statistics.relics.opened.total.runsPerDay[key]) past_runs.push(statistics.relics.opened.total.runsPerDay[key].length)
+        statistics.relics.opened.total.runsDistr.push({
+                timestamp: new Date(key),
+                total: statistics.relics.opened.total.runsPerDay[key]? statistics.relics.opened.total.runsPerDay[key].length:0,
+                moving_avg: movingAvg(past_runs, 5, null),
+                avg: past_runs.reduce( ( p, c ) => p + c, 0 ) / past_runs.length
+        })
+    })
     // Vaulted - daily_avg
-    var avg = 0
-    for (const key in statistics.relics.opened.vaulted.runsPerDay) {
-        avg += statistics.relics.opened.vaulted.runsPerDay[key].length
-    }
-    statistics.relics.opened.vaulted.daily_avg = Number((avg / Object.keys(statistics.relics.opened.vaulted.runsPerDay).length).toFixed(1))
+    var past_runs: Array<number> = []
+    dayDistr.forEach((key) => {
+        /*
+        if (statistics.relics.opened.vaulted.runsPerDay[key]) {
+            past_runs.push(statistics.relics.opened.vaulted.runsPerDay[key].length)
+            statistics.relics.opened.vaulted.runsDistr.push({
+                    timestamp: new Date(key),
+                    total: statistics.relics.opened.vaulted.runsPerDay[key].length,
+                    moving_avg: (statistics.relics.opened.vaulted.runsDistr.length > 0 ? (statistics.relics.opened.vaulted.runsDistr[statistics.relics.opened.vaulted.runsDistr.length - 1].avg + statistics.relics.opened.vaulted.runsPerDay[key].length) / 2:statistics.relics.opened.vaulted.runsPerDay[key].length),
+                    avg: past_runs.reduce( ( p, c ) => p + c, 0 ) / past_runs.length
+            })
+        }
+        else {
+            statistics.relics.opened.vaulted.runsDistr.push({
+                    timestamp: new Date(key),
+                    total: 0,
+                    moving_avg: statistics.relics.opened.vaulted.runsDistr.length > 0 ? statistics.relics.opened.vaulted.runsDistr[statistics.relics.opened.vaulted.runsDistr.length - 1].avg:0,
+                    avg: past_runs.reduce( ( p, c ) => p + c, 0 ) / past_runs.length
+            })
+        }
+        */
+        /*
+        if (statistics.relics.opened.vaulted.runsPerDay[key]) past_runs.push(statistics.relics.opened.vaulted.runsPerDay[key].length)
+        statistics.relics.opened.vaulted.runsDistr.push({
+                timestamp: new Date(key),
+                total: statistics.relics.opened.vaulted.runsPerDay[key]? statistics.relics.opened.vaulted.runsPerDay[key].length:0,
+                moving_avg: movingAvg(past_runs, 5, null),
+                avg: past_runs.reduce( ( p, c ) => p + c, 0 ) / past_runs.length
+        })
+    })
     // Tracked - daily_avg
-    var avg = 0
-    for (const key in statistics.relics.opened.tracked.runsPerDay) {
-        avg += statistics.relics.opened.tracked.runsPerDay[key].length
-    }
-    statistics.relics.opened.tracked.daily_avg = Number((avg / Object.keys(statistics.relics.opened.tracked.runsPerDay).length).toFixed(1))
+    */
+    const dayDistr = stepFunc(new Date(min_timestamp).setHours(0,0,0,0), 86400000, new Date().setHours(0,0,0,0))
+    var t_past_runs: Array<number> = []
+    var v_past_runs: Array<number> = []
+    var tr_past_runs: Array<number> = []
+    dayDistr.forEach((key) => {
+        if (statistics.relics.opened.total.runsPerDay[key]) t_past_runs.push(statistics.relics.opened.total.runsPerDay[key].length)
+        statistics.relics.opened.total.runsDistr.push({
+                timestamp: new Date(key),
+                total: statistics.relics.opened.total.runsPerDay[key]? statistics.relics.opened.total.runsPerDay[key].length:0,
+                moving_avg: statistics.relics.opened.total.runsPerDay[key] ?
+                (statistics.relics.opened.total.runsDistr.length > 0 ? (statistics.relics.opened.total.runsDistr[statistics.relics.opened.total.runsDistr.length - 1].moving_avg + statistics.relics.opened.total.runsPerDay[key].length) / 2:statistics.relics.opened.total.runsPerDay[key].length):
+                statistics.relics.opened.total.runsDistr.length > 0 ? statistics.relics.opened.total.runsDistr[statistics.relics.opened.total.runsDistr.length - 1].moving_avg:0,
+                avg: t_past_runs.reduce( ( p, c ) => p + c, 0 ) / t_past_runs.length
+        })
+
+        if (statistics.relics.opened.vaulted.runsPerDay[key]) v_past_runs.push(statistics.relics.opened.vaulted.runsPerDay[key].length)
+        statistics.relics.opened.vaulted.runsDistr.push({
+                timestamp: new Date(key),
+                total: statistics.relics.opened.vaulted.runsPerDay[key]? statistics.relics.opened.vaulted.runsPerDay[key].length:0,
+                moving_avg: statistics.relics.opened.vaulted.runsPerDay[key] ?
+                (statistics.relics.opened.vaulted.runsDistr.length > 0 ? (statistics.relics.opened.vaulted.runsDistr[statistics.relics.opened.vaulted.runsDistr.length - 1].moving_avg + statistics.relics.opened.vaulted.runsPerDay[key].length) / 2:statistics.relics.opened.vaulted.runsPerDay[key].length):
+                statistics.relics.opened.vaulted.runsDistr.length > 0 ? statistics.relics.opened.vaulted.runsDistr[statistics.relics.opened.vaulted.runsDistr.length - 1].moving_avg:0,
+                avg: v_past_runs.reduce( ( p, c ) => p + c, 0 ) / v_past_runs.length
+        })
+
+        if (statistics.relics.opened.tracked.runsPerDay[key]) tr_past_runs.push(statistics.relics.opened.tracked.runsPerDay[key].length)
+        statistics.relics.opened.tracked.runsDistr.push({
+                timestamp: new Date(key),
+                total: statistics.relics.opened.tracked.runsPerDay[key]? statistics.relics.opened.tracked.runsPerDay[key].length:0,
+                moving_avg: statistics.relics.opened.tracked.runsPerDay[key] ?
+                (statistics.relics.opened.tracked.runsDistr.length > 0 ? (statistics.relics.opened.tracked.runsDistr[statistics.relics.opened.tracked.runsDistr.length - 1].moving_avg + statistics.relics.opened.tracked.runsPerDay[key].length) / 2:statistics.relics.opened.tracked.runsPerDay[key].length):
+                statistics.relics.opened.tracked.runsDistr.length > 0 ? statistics.relics.opened.tracked.runsDistr[statistics.relics.opened.tracked.runsDistr.length - 1].moving_avg:0,
+                avg: tr_past_runs.reduce( ( p, c ) => p + c, 0 ) / tr_past_runs.length
+        })
+    })
+    statistics.relics.opened.total.daily_avg = Number((t_past_runs.reduce( ( p, c ) => p + c, 0 ) / t_past_runs.length).toFixed(1))
+    statistics.relics.opened.tracked.daily_avg = Number((v_past_runs.reduce( ( p, c ) => p + c, 0 ) / v_past_runs.length).toFixed(1))
+    statistics.relics.opened.vaulted.daily_avg = Number((tr_past_runs.reduce( ( p, c ) => p + c, 0 ) / tr_past_runs.length).toFixed(1))
+
     statistics.relics.opened_sorted = Object.keys(statistics.relics.opened_distr).sort(function(a,b){return statistics.relics.opened_distr[b].opened-statistics.relics.opened_distr[a].opened})
 
     rawStatistics.trades.forEach((trade:any) => {
         trade.timestamp = new Date(trade.timestamp).getTime()
+        if (!(trade.timestamp >= startDate) || !(trade.timestamp <= (endDate == null ? new Date().getTime() : endDate))) return
         if (trade.status == 'successful' && !trade.deprecated) {
             try {
                 trade.offeringItems.forEach((item:string) => {
@@ -955,4 +1076,52 @@ function computeStats(rawStatistics:any) {
     fs.writeFileSync(appFolder+'relicsDB.json',JSON.stringify(relicsDB))
     //console.log(JSON.stringify(sortObject(statistics.trades.items.sold)))
     return statistics
+}
+
+function stepFunc(start:number, step:number, end:number) {
+    const arrayLength = Math.floor(((end - start) / step)) + 1;
+    const range = [...Array(arrayLength).keys()].map(x => (x * step) + start);
+    return range
+}
+
+/**
+* returns an array with moving average of the input array
+* @param array - the input array
+* @param count - the number of elements to include in the moving average calculation
+* @param qualifier - an optional function that will be called on each 
+*  value to determine whether it should be used
+*/
+function movingAvg(array:Array<number>, count:number, qualifier:any){
+    // calculate average for subarray
+    var avg = function(array:Array<number>, qualifier:any) {
+
+        var sum = 0, count = 0, val;
+        for (var i in array){
+            val = array[i];
+            if (!qualifier || qualifier(val)){
+                sum += val;
+                count++;
+            }
+        }
+
+        return sum / count;
+    };
+
+    var result = [], val;
+
+    // pad beginning of result with null values
+    for (var i=0; i < count-1; i++)
+        result.push(0);
+
+    // calculate average for each subarray and add to result
+    for (var i=0, len=array.length - count; i <= len; i++) {
+
+        val = avg(array.slice(i, i + count), qualifier);
+        if (isNaN(val))
+            result.push(0);
+        else
+            result.push(val);
+    }
+
+    return (result.reduce( ( p, c ) => p + c, 0 ) / result.length);
 }

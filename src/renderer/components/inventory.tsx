@@ -449,10 +449,10 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
         const total = this.totalRelics()
         return (<React.Fragment>
             <Grid container spacing={2} justifyContent="center" alignItems="center">
-                <Grid item xs={6}>
+                <Grid item xs={3}>
                     <Button variant="outlined" onClick={this.handleOpen} startIcon={<AddBox />}>Add Relic</Button>
                 </Grid>
-                <Grid item xs={6} style={{display: 'flex', justifyContent:'flex-end'}}>
+                <Grid item xs={9} style={{display: 'flex', justifyContent:'flex-end'}}>
                     <Typography style={{paddingRight: '30px', paddingTop: '25px'}}>Total: {total}</Typography>
                     <TextField variant="standard" id="standard-helperText" label="Search relic" style={{marginRight: "30px",marginBottom:"25px"}} onChange={this.handleChangeSearchRelic} onKeyUp={this.handleSearchRelicKeyUp}/>
                     <FormControlLabel control={<Checkbox defaultChecked={showTiers.lith ? true:false} onChange={this.handleCheckboxChange} id="lith"/>} label="Lith" />

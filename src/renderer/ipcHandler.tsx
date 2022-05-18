@@ -39,6 +39,9 @@ event.on('postConfig', (data) => {
 event.on('toggleStartUp', (arg) => {
     window.electron.ipcRenderer.sendMain('toggleStartUp', arg);
 })
+event.on('statisticsDateUpdate', (arg) => {
+    window.electron.ipcRenderer.sendMain('statisticsDateUpdate', arg);
+})
 
 event.on('importGDPRRequest', (data) => {
     window.electron.ipcRenderer.sendMain('importGDPRRequest', data);

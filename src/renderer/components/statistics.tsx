@@ -14,45 +14,48 @@ import {
     TableHead,
     TableRow,
     CssBaseline,
-    Input
+    Input,
+    TextField,
+    IconButton,
 } from '@mui/material';
 import {
-    FileDownload
+    RestartAlt,
 } from '@mui/icons-material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import React from 'react';
 import {event} from '../eventHandler'
 
-//var rawStatistics = {mission_initialize: [], trades: []}
-//var relicsDB:Array<any> = []
+/********   chart.js  *******/
+import { Chart } from 'react-chartjs-2';
+import faker from 'faker';
+import {
+  Chart as ChartJS,
+  LinearScale,
+  CategoryScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Legend,
+  Tooltip,
+} from 'chart.js';
+ChartJS.register(
+  LinearScale,
+  CategoryScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Legend,
+  Tooltip
+);
+/***************************/
 
 event.on('statisticsFetch', (data:any) => {
     statistics = typeof data == 'object' ? data:JSON.parse(data)
     event.emit('updateStatistics')
 })
-/*
-event.on('relicDBFetch', (data:any) => {
-    relicsDB = typeof data == 'object' ? data:JSON.parse(data)
-})*/
-/*
-interface Iitems_list {
-    [key: string]: {
-        item_url: string,
-        sell_price: string,
-        rewards: {
-            common: Array<string>,
-            uncommon: Array<string>,
-            rare: Array<string>,
-        },
-        relics: Array<{link: string, name: string}>,
-        tags: Array<string>,
-        vault_status: string,
-        items_in_set: Array<{url_name: string, quantity_for_set: number}>,
-    }
-}
 
-var items_list:Iitems_list = {
-}
-*/
 interface Istatistics {
     relics: {
         opened: {
@@ -60,19 +63,37 @@ interface Istatistics {
                 all_time: number,
                 today: number,
                 daily_avg: number
-                runsPerDay: {[key: string]: Array<object>}
+                runsPerDay: {[key: string]: Array<object>},
+                runsDistr: Array<{
+                    timestamp: Date,
+                    total: number,
+                    moving_avg: number,
+                    avg: number,
+                }>
             },
             vaulted: {
                 all_time: number,
                 today: number,
                 daily_avg: number
-                runsPerDay: {[key: string]: Array<object>}
+                runsPerDay: {[key: string]: Array<object>},
+                runsDistr: Array<{
+                    timestamp: Date,
+                    total: number,
+                    moving_avg: number,
+                    avg: number,
+                }>
             },
             tracked: {
                 all_time: number,
                 today: number,
                 daily_avg: number
-                runsPerDay: {[key: string]: Array<object>}
+                runsPerDay: {[key: string]: Array<object>},
+                runsDistr: Array<{
+                    timestamp: Date,
+                    total: number,
+                    moving_avg: number,
+                    avg: number,
+                }>
             }
         },
         opened_distr: {[key: string]: {opened: 0}},
@@ -107,19 +128,22 @@ var statistics:Istatistics = {
                 all_time: 0,
                 today: 0,
                 daily_avg: 0,
-                runsPerDay: {}
+                runsPerDay: {},
+                runsDistr: []
             },
             vaulted: {
                 all_time: 0,
                 today: 0,
                 daily_avg: 0,
-                runsPerDay: {}
+                runsPerDay: {},
+                runsDistr: []
             },
             tracked: {
                 all_time: 0,
                 today: 0,
                 daily_avg: 0,
-                runsPerDay: {}
+                runsPerDay: {},
+                runsDistr: []
             }
         },
         opened_distr: {},
@@ -147,19 +171,13 @@ var statistics:Istatistics = {
         }
     }
 }
-/*
-event.on('itemsListFetch', (data) => {
-    // convert into keys for faster access
-    data.forEach((item:any) => {
-        items_list[item.item_url as keyof Iitems_list] = item
-    })
-})
-*/
 
 interface IStatisticsProps {
 }
 interface IStatisticsState {
-    update: boolean
+    update: boolean,
+    startDate: Date,
+    endDate: Date
 }
 
 class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
@@ -167,6 +185,8 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
       super(props);
       this.state = {
         update: false,
+        startDate: new Date(1364169600000),
+        endDate: new Date(new Date().setHours(0,0,0,0))
       };
     }
     
@@ -187,268 +207,63 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
         console.log('*************updating statistics*******************')
     }
 
-    /*
-    computeStats = () => {
-        interface Istatistics {
-            relics: {
-                opened: {
-                    total: {
-                        all_time: number,
-                        today: number,
-                        daily_avg: number
-                        runsPerDay: {[key: string]: Array<object>}
-                    },
-                    vaulted: {
-                        all_time: number,
-                        today: number,
-                        daily_avg: number
-                        runsPerDay: {[key: string]: Array<object>}
-                    },
-                    tracked: {
-                        all_time: number,
-                        today: number,
-                        daily_avg: number
-                        runsPerDay: {[key: string]: Array<object>}
-                    }
-                },
-                opened_distr: {[key: string]: {opened: 0}},
-                opened_sorted: string[]
-            },
-            trades: {
-                plat: {
-                    spent: {
-                        all_time: number,
-                        today: number,
-                        daily_avg: number,
-                        spentPerDay: {[key: string]: number}
-                    },
-                    gained: {
-                        all_time: number,
-                        today: number,
-                        daily_avg: number,
-                        gainedPerDay: {[key: string]: number}
-                    }
-                },
-                items: {
-                    sold: {[key: string]: number},
-                    bought: {[key: string]: number},
-                    sets_sold: {[key: string]: number},
-                }
-            }
+    statCharts = () => {
+        function stepFunc(start:number, step:number, end:number) {
+            const arrayLength = Math.floor(((end - start) / step)) + 1;
+            const range = [...Array(arrayLength).keys()].map(x => (x * step) + start);
+            return range
         }
-        var statistics:Istatistics = {
-            relics: {
-                opened: {
-                    total: {
-                        all_time: 0,
-                        today: 0,
-                        daily_avg: 0,
-                        runsPerDay: {}
-                    },
-                    vaulted: {
-                        all_time: 0,
-                        today: 0,
-                        daily_avg: 0,
-                        runsPerDay: {}
-                    },
-                    tracked: {
-                        all_time: 0,
-                        today: 0,
-                        daily_avg: 0,
-                        runsPerDay: {}
-                    }
-                },
-                opened_distr: {},
-                opened_sorted: []
-            },
-            trades: {
-                plat: {
-                    spent: {
-                        all_time: 0,
-                        today: 0,
-                        daily_avg: 0,
-                        spentPerDay: {}
-                    },
-                    gained: {
-                        all_time: 0,
-                        today: 0,
-                        daily_avg: 0,
-                        gainedPerDay: {}
-                    }
-                },
-                items: {
-                    sold: {},
-                    bought: {},
-                    sets_sold: {}
-                }
-            }
-        }
-        rawStatistics.mission_initialize.forEach((mission:any,index:number) => {
-            if (mission.status == 'successful') {
-                mission.relicEquipped = mission.relicEquipped.toLowerCase()
-                mission.timestamp = new Date(mission.timestamp).getTime()
-                // opened_distr
-                if (!statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)]) statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)] = {opened: 0}
-                statistics.relics.opened_distr[getRelicUrl(mission.relicEquipped)].opened++
-                // Total Opened 
-                    // all time
-                    statistics.relics.opened.total.all_time++
-                    // today
-                    if (mission.timestamp >= new Date().setHours(0,0,0,0)) statistics.relics.opened.total.today++
-                    // runsPerDay
-                    if (mission.timestamp > 100000) {
-                        if (!statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
-                        statistics.relics.opened.total.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
-                    }
-                // Vaulted Opened
-                const vault_status = items_list[getRelicUrl(mission.relicEquipped)]?.vault_status
-                if (vault_status == 'V' || vault_status == 'B' || vault_status == 'P') {
-                    // all time
-                    statistics.relics.opened.vaulted.all_time++
-                    // today
-                    if (mission.timestamp >= new Date().setHours(0,0,0,0)) statistics.relics.opened.vaulted.today++
-                    // runsPerDay
-                    if (mission.timestamp > 100000) {
-                        if (!statistics.relics.opened.vaulted.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.vaulted.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
-                        statistics.relics.opened.vaulted.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
-                    }
-                }
-                // Tracked Opened
-                for (const relic of relicsDB) {
-                    if (getRelicUrl(relic.name) == getRelicUrl(mission.relicEquipped)) {
-                        // all time
-                        statistics.relics.opened.tracked.all_time++
-                        // today
-                        if (mission.timestamp >= new Date().setHours(0,0,0,0)) statistics.relics.opened.tracked.today++
-                        // runsPerDay
-                        if (mission.timestamp > 100000) {
-                            if (!statistics.relics.opened.tracked.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))]) statistics.relics.opened.tracked.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))] = []
-                            statistics.relics.opened.tracked.runsPerDay[String(new Date(mission.timestamp).setHours(0,0,0,0))].push(mission)
-                        }
-                        break
-                    }
-                }
+        const dayDistr = stepFunc(this.state.endDate.setHours(0,0,0,0) - 7776000000, 86400000, this.state.endDate.setHours(0,0,0,0))
+        var movingAvg:Array<number> = []
+        var totalRuns:Array<number> = []
+        //console.log(JSON.stringify(temp))
+        statistics.relics.opened.total.runsDistr.forEach((key) => {
+            if (dayDistr.includes(new Date(key.timestamp).getTime())) {
+                movingAvg.push(key.moving_avg)
+                totalRuns.push(key.total)
             }
         })
-        // Total - daily_avg
-        var avg = 0
-        for (const key in statistics.relics.opened.total.runsPerDay) {
-            avg += statistics.relics.opened.total.runsPerDay[key].length
-        }
-        statistics.relics.opened.total.daily_avg = Number((avg / Object.keys(statistics.relics.opened.total.runsPerDay).length).toFixed(1))
-        // Vaulted - daily_avg
-        var avg = 0
-        for (const key in statistics.relics.opened.vaulted.runsPerDay) {
-            avg += statistics.relics.opened.vaulted.runsPerDay[key].length
-        }
-        statistics.relics.opened.vaulted.daily_avg = Number((avg / Object.keys(statistics.relics.opened.vaulted.runsPerDay).length).toFixed(1))
-        // Tracked - daily_avg
-        var avg = 0
-        for (const key in statistics.relics.opened.tracked.runsPerDay) {
-            avg += statistics.relics.opened.tracked.runsPerDay[key].length
-        }
-        statistics.relics.opened.tracked.daily_avg = Number((avg / Object.keys(statistics.relics.opened.tracked.runsPerDay).length).toFixed(1))
-        statistics.relics.opened_sorted = Object.keys(statistics.relics.opened_distr).sort(function(a,b){return statistics.relics.opened_distr[b].opened-statistics.relics.opened_distr[a].opened})
-
-        rawStatistics.trades.forEach((trade:any) => {
-            trade.timestamp = new Date(trade.timestamp).getTime()
-            if (trade.status == 'successful' && !trade.deprecated) {
-                try {
-                    trade.offeringItems.forEach((item:string) => {
-                        item = item.toLowerCase().replace('_chassis_blueprint', '_chassis').replace('_systems_blueprint', '_systems').replace('_neuroptics_blueprint', '_neuroptics').replace('_wings_blueprint', '_wings').replace('_harness_blueprint', '_harness')
-                        if (item.match('platinum')) {
-                            // all time
-                            statistics.trades.plat.spent.all_time += Number((item.split('_'))[2])
-                            // today
-                            if (trade.timestamp >= new Date().setHours(0,0,0,0)) statistics.trades.plat.spent.today += Number((item.split('_'))[2])
-                            // tradesPerDay
-                            if (trade.timestamp > 100000) {
-                                if (!statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))]) statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] = 0
-                                statistics.trades.plat.spent.spentPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] += Number((item.split('_'))[2])
-                            }
-                        }
-                        // items quantity sold
-                        if (!item.match('platinum')) {
-                            if (!statistics.trades.items.sold[item]) statistics.trades.items.sold[item] = 0
-                            statistics.trades.items.sold[item]++
-                            // check if full set being sold
-                            if (item.match(/_blueprint$/)) {
-                                // get list of components
-                                var items_in_set:any = {}
-                                if (items_list[item]?.items_in_set.length > 0) {
-                                    items_list[item].items_in_set.forEach(component => {
-                                        if (!component.url_name.match(/_set$/)) {
-                                            items_in_set[component.url_name] = {
-                                                url_name: component.url_name,
-                                                quantity_for_set: component.quantity_for_set,
-                                                quantity_traded: 0
-                                            }
-                                        }
-                                    })
-                                }
-                                // verify all quantities
-                                trade.offeringItems.forEach((item1:string) => {
-                                    item1 = item1.toLowerCase().replace('_chassis_blueprint', '_chassis').replace('_systems_blueprint', '_systems').replace('_neuroptics_blueprint', '_neuroptics')
-                                    items_in_set[item1]? items_in_set[item1].quantity_traded++:false
-                                })
-                                var setTraded = true
-                                for (const key in items_in_set) {
-                                    if (items_in_set[key].quantity_traded != items_in_set[key].quantity_for_set)
-                                        setTraded = false
-                                }
-                                if (setTraded) {
-                                    var str = item.replace(/_blueprint$/, '_set')
-                                    if (!statistics.trades.items.sets_sold[str]) statistics.trades.items.sets_sold[str] = 0
-                                    statistics.trades.items.sets_sold[str]++
-                                }
-                            }
-                        }
-                    })
-                } catch (e) {}
-                try {
-                    trade.receivingItems.forEach((item:string) => {
-                        item = item.toLowerCase().replace('_chassis_blueprint', '_chassis').replace('_systems_blueprint', '_systems').replace('_neuroptics_blueprint', '_neuroptics')
-                        if (item.match('platinum')) {
-                            // all time
-                            statistics.trades.plat.gained.all_time += Number((item.split('_'))[2])
-                            // today
-                            if (trade.timestamp >= new Date().setHours(0,0,0,0)) statistics.trades.plat.gained.today += Number((item.split('_'))[2])
-                            // tradesPerDay
-                            if (trade.timestamp > 100000) {
-                                if (!statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))]) statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] = 0
-                                statistics.trades.plat.gained.gainedPerDay[String(new Date(trade.timestamp).setHours(0,0,0,0))] += Number((item.split('_'))[2])
-                            }
-                        }
-                        // items quantity bought
-                        if (!item.match('platinum')) {
-                            if (!statistics.trades.items.bought[item]) statistics.trades.items.bought[item] = 0
-                            statistics.trades.items.bought[item]++
-                        }
-                    })
-                } catch (e) {}
+        // pad zeros if unequal length
+        if (movingAvg.length < dayDistr.length) {
+            var n = dayDistr.length - movingAvg.length
+            while (n > 0) {
+                movingAvg.unshift(0)
+                totalRuns.unshift(0)
+                n--
             }
+        }
+        /*
+        dayDistr.map((key) => {
+            if (statistics.relics.opened.total.runsPerDay[key]) lineData.push(((lineData.length > 0 ? lineData[lineData.length - 1]:0) + statistics.relics.opened.total.runsPerDay[key].length) / 2)
+            else lineData.push(lineData.length > 0 ? lineData[lineData.length - 1]:0)
         })
-        //console.log(JSON.stringify(statistics.trades.items.sets_sold))
-
-        // Plat Spent - daily_avg
-        var avg = 0
-        for (const key in statistics.trades.plat.spent.spentPerDay) {
-            avg += statistics.trades.plat.spent.spentPerDay[key]
-        }
-        statistics.trades.plat.spent.daily_avg = Number((avg / Object.keys(statistics.trades.plat.spent.spentPerDay).length).toFixed(1))
-        // Plat Gained - daily_avg
-        var avg = 0
-        for (const key in statistics.trades.plat.gained.gainedPerDay) {
-            avg += statistics.trades.plat.gained.gainedPerDay[key]
-        }
-        statistics.trades.plat.gained.daily_avg = Number((avg / Object.keys(statistics.trades.plat.gained.gainedPerDay).length).toFixed(1))
-        //console.log(JSON.stringify(sortObject(statistics.trades.items.sold)))
+        */
+        //console.log(JSON.stringify(lineData))
+        const labels = dayDistr.map((key) => new Date(key).toLocaleString('default', {month: "short"}) + ' ' + new Date(key).getDate())
+        const data = {
+            labels,
+            datasets: [
+                {
+                  type: 'line' as const,
+                  label: 'Moving Avg',
+                  borderColor: '#a85c32',
+                  borderWidth: 2,
+                  fill: false,
+                  data: movingAvg,
+                },{
+                    type: 'bar' as const,
+                    label: 'Total Runs',
+                    data: totalRuns,
+                    backgroundColor: '#757ce8',
+                },
+            ],
+        };
         return (
             <React.Fragment>
-          </React.Fragment>
+                <Chart type='bar' data={data} height='60px'/>
+             </React.Fragment>
         )
     }
-    */
 
     render() {
         return (
@@ -462,26 +277,26 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                             <Grid container spacing={2} justifyContent="center">
                                 <Grid item xs={4}>
                                     <Typography color="inherit" sx={{textDecoration: 'underline'}}>All relics</Typography>
-                                    <Typography color="inherit">All time: {statistics.relics.opened.total.all_time}</Typography>
+                                    <Typography color="inherit">Total: {statistics.relics.opened.total.all_time}</Typography>
                                     <Typography color="inherit">Today: {statistics.relics.opened.total.today}</Typography>
                                     <Typography color="inherit">Avg: {statistics.relics.opened.total.daily_avg}/day</Typography>
                                 </Grid>
                                 <Grid item xs={4}>
                                     <Typography color="inherit" sx={{textDecoration: 'underline'}}>Vaulted relics</Typography>
-                                    <Typography color="inherit">All time: {statistics.relics.opened.vaulted.all_time}</Typography>
+                                    <Typography color="inherit">Total: {statistics.relics.opened.vaulted.all_time}</Typography>
                                     <Typography color="inherit">Today: {statistics.relics.opened.vaulted.today}</Typography>
                                     <Typography color="inherit">Avg: {statistics.relics.opened.vaulted.daily_avg}/day</Typography>
                                 </Grid>
                                 <Grid item xs={4}>
                                     <Typography color="inherit" sx={{textDecoration: 'underline'}}>Tracked relics</Typography>
-                                    <Typography color="inherit">All time: {statistics.relics.opened.tracked.all_time}</Typography>
+                                    <Typography color="inherit">Total: {statistics.relics.opened.tracked.all_time}</Typography>
                                     <Typography color="inherit">Today: {statistics.relics.opened.tracked.today}</Typography>
                                     <Typography color="inherit">Avg: {statistics.relics.opened.tracked.daily_avg}/day</Typography>
                                 </Grid>
                                 <Grid item xs={12}></Grid>
                                 <Grid item xs={12}>
                                     <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top Relics Opened</Typography>
-                                    <TableContainer sx={{ maxHeight: 350, maxWidth: 250 }}>
+                                    <TableContainer sx={{ maxHeight: 270, maxWidth: 250 }}>
                                         <Table>
                                             <TableHead>
                                             <TableRow>
@@ -508,17 +323,63 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                             </Grid>
                         </Grid>
                         <Grid item xs={8}>
-                            <Typography color="inherit" style={{fontSize: '32px'}}>Trades</Typography>
+                            <Grid container spacing={2} justifyContent="center">
+                                <Grid item xs={2}>
+                                    <Typography color="inherit" style={{fontSize: '32px'}}>Trades</Typography>
+                                </Grid>
+                                <Grid item xs={10} style={{display: 'flex', justifyContent:'flex-end'}}>
+                                    <Grid container justifyContent="right" style={{marginTop: '10px'}}>
+                                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                            <DatePicker
+                                                label="From"
+                                                value={this.state.startDate}
+                                                onChange={(newValue: Date | null) => {
+                                                    newValue = new Date((newValue as Date).setHours(0,0,0,0))
+                                                    this.setState({startDate: newValue as Date}, () => {
+                                                        event.emit('statisticsDateUpdate', {startDate: this.state.startDate, endDate: new Date(this.state.endDate).getTime() == new Date().setHours(0,0,0,0) ? null : this.state.endDate})
+                                                    })
+                                                }}
+                                                renderInput={(params) => <TextField size="small" sx={{width: '150px'}} {...params} />}
+                                            />
+                                        </LocalizationProvider>
+                                        <Typography color="inherit" style={{fontSize: '18px', paddingRight: '10px', paddingLeft: '10px', paddingTop: '5px'}}>-</Typography>
+                                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                            <DatePicker
+                                                label="To"
+                                                value={this.state.endDate}
+                                                onChange={(newValue: Date | null) => {
+                                                    newValue = new Date((newValue as Date).setHours(0,0,0,0))
+                                                    this.setState({endDate: newValue as Date}, () => {
+                                                        event.emit('statisticsDateUpdate', {startDate: this.state.startDate, endDate: new Date(this.state.endDate).getTime() == new Date().setHours(0,0,0,0) ? null : this.state.endDate})
+                                                    })
+                                                }}
+                                                renderInput={(params) => <TextField size="small" sx={{width: '150px'}} {...params} />}
+                                            />
+                                        </LocalizationProvider>
+                                        <IconButton 
+                                        aria-label="reset" 
+                                        color= {(new Date(this.state.startDate).getTime() == 1364169600000 && new Date(this.state.endDate).getTime() == new Date().setHours(0,0,0,0)) ? "inherit" : "primary"}
+                                        onClick={() => {
+                                            this.setState({startDate: new Date(1364169600000),endDate: new Date(new Date().setHours(0,0,0,0))}, () => {
+                                                event.emit('statisticsDateUpdate', {startDate: this.state.startDate, endDate: new Date(this.state.endDate).getTime() == new Date().setHours(0,0,0,0) ? null : this.state.endDate})
+                                            })
+                                        }} 
+                                        style={{boxShadow:"none",marginRight: '5px',marginLeft: '5px'}}>
+                                            <RestartAlt />
+                                        </IconButton>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
                             <Grid container spacing={2} justifyContent="center">
                                 <Grid item xs={4}>
                                     <Typography color="inherit" sx={{textDecoration: 'underline'}}>Plat Earned</Typography>
-                                    <Typography color="inherit">All time: {statistics.trades.plat.gained.all_time}p</Typography>
+                                    <Typography color="inherit">Total: {statistics.trades.plat.gained.all_time}p</Typography>
                                     <Typography color="inherit">Today: {statistics.trades.plat.gained.today}p</Typography>
                                     <Typography color="inherit">Avg: {statistics.trades.plat.gained.daily_avg}p/day</Typography>
                                 </Grid>
                                 <Grid item xs={4}>
                                     <Typography color="inherit" sx={{textDecoration: 'underline'}}>Plat Spent</Typography>
-                                    <Typography color="inherit">All time: {statistics.trades.plat.spent.all_time}p</Typography>
+                                    <Typography color="inherit">Total: {statistics.trades.plat.spent.all_time}p</Typography>
                                     <Typography color="inherit">Today: {statistics.trades.plat.spent.today}p</Typography>
                                     <Typography color="inherit">Avg: {statistics.trades.plat.spent.daily_avg}p/day</Typography>
                                 </Grid>
@@ -527,7 +388,7 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                                 <Grid item xs={12}></Grid>
                                 <Grid item xs={4}>
                                     <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top Items sold</Typography>
-                                    <TableContainer sx={{ maxHeight: 350, maxWidth: 370}}>
+                                    <TableContainer sx={{ maxHeight: 270, maxWidth: 370}}>
                                         <Table>
                                             <TableHead>
                                             <TableRow>
@@ -553,7 +414,7 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                                 </Grid>
                                 <Grid item xs={4}>
                                     <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top Items bought</Typography>
-                                    <TableContainer sx={{ maxHeight: 350, maxWidth: 370 }}>
+                                    <TableContainer sx={{ maxHeight: 270, maxWidth: 370 }}>
                                         <Table>
                                             <TableHead>
                                             <TableRow>
@@ -579,7 +440,7 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                                 </Grid>
                                 <Grid item xs={4}>
                                     <Typography color="inherit" sx={{textDecoration: 'underline'}}>Top sets sold</Typography>
-                                    <TableContainer sx={{ maxHeight: 350, maxWidth: 370 }}>
+                                    <TableContainer sx={{ maxHeight: 270, maxWidth: 370 }}>
                                         <Table>
                                             <TableHead>
                                             <TableRow>
@@ -604,6 +465,9 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
                                     </TableContainer>
                                 </Grid>
                             </Grid>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <this.statCharts/>
                         </Grid>
                     </Grid>
                 </Grid>
