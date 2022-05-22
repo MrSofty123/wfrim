@@ -216,11 +216,12 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
         const dayDistr = stepFunc(this.state.endDate.setHours(0,0,0,0) - 7776000000, 86400000, this.state.endDate.setHours(0,0,0,0))
         var movingAvg:Array<number> = []
         var totalRuns:Array<number> = []
-        //console.log(JSON.stringify(temp))
+        var avg:Array<number> = []
         statistics.relics.opened.total.runsDistr.forEach((key) => {
             if (dayDistr.includes(new Date(key.timestamp).getTime())) {
                 movingAvg.push(key.moving_avg)
                 totalRuns.push(key.total)
+                avg.push(key.avg)
             }
         })
         // pad zeros if unequal length
@@ -229,6 +230,7 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
             while (n > 0) {
                 movingAvg.unshift(0)
                 totalRuns.unshift(0)
+                avg.unshift(0)
                 n--
             }
         }
@@ -244,6 +246,13 @@ class Statistics extends React.Component<IStatisticsProps,IStatisticsState> {
             labels,
             datasets: [
                 {
+                  type: 'line' as const,
+                  label: 'Avg',
+                  borderColor: '#f54245',
+                  borderWidth: 2,
+                  fill: false,
+                  data: avg,
+                },{
                   type: 'line' as const,
                   label: 'Moving Avg',
                   borderColor: '#a85c32',

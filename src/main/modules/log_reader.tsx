@@ -562,7 +562,7 @@ ipcMain.on('importGDPRRequest', (event,file_paths:Array<string>) => {
             offeringItems: ["platinum_x_" + store_plat],
             receivingItems: ["platinum_x_0"],
             status: "successful",
-            timestamp: new Date(0),
+            timestamp: new Date(),
             trader: "N/A",
             category: "store_purchases"
         })

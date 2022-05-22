@@ -6,6 +6,7 @@ import {Tabs, Tab, Box, Typography, useTheme, AppBar, ThemeProvider, createTheme
 import Inventory from './components/inventory';
 import Settings from './components/settings';
 import Statistics from './components/statistics';
+import Hosting from './components/hosting';
 
 const darkTheme = createTheme({
   palette: {
@@ -146,7 +147,7 @@ function FullWidthTabs() {
       <Inventory/>
       </div>
       <div hidden={value !== 1} style={{overflowY:'auto',maxHeight:"93%",padding:'10px'}}>
-      Hosting
+      <Hosting/>
       </div>
       <div hidden={value !== 2} style={{overflowY:'auto',maxHeight:"93%",padding:'10px'}}>
       <Statistics/>

@@ -45,6 +45,10 @@ fileContent.forEach((item:any, index:number) => {
     change = true
     fileContent[index].display = true
   }
+  if (!item.hasOwnProperty('refinement')) {
+    change = true
+    fileContent[index].refinement = {cycle: '4b4', refinement: 'rad'}
+  }
   if (typeof item.quantity != 'number') {
     change = true
     fileContent[index].quantity = Number(item.quantity)

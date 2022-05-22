@@ -19,13 +19,17 @@ import {
     Avatar,
     Grid,
     Tooltip,
-    CssBaseline
+    CssBaseline,
+    Select,
+    MenuItem,
+    FormControl
 } from '@mui/material';
 import {
     AddBox,
     Add,
     Remove,
-    Delete
+    Delete,
+    Settings
 } from '@mui/icons-material';
 import React from 'react';
 import {event} from '../eventHandler'
@@ -42,9 +46,9 @@ interface relicProps {
     name: string,
     quantity: number,
     opened: number,
-    display: boolean
+    display: boolean,
+    refinement: {cycle: string, refinement: string}
 }
-//var relicDB:Array<relicProps> = [{"name":"Axi A2","quantity":114},{"name":"Axi A5","quantity":8},{"name":"Axi A7","quantity":3},{"name":"Axi E1","quantity":40},{"name":"Axi G1","quantity":16},{"name":"Axi G8","quantity":0,"opened":0,"display":false},{"name":"Axi L1","quantity":1},{"name":"Axi L4","quantity":6},{"name":"Axi N1","quantity":18},{"name":"Axi N2","quantity":"17"},{"name":"Axi N3","quantity":18},{"name":"Axi N4","quantity":"15"},{"name":"Axi N5","quantity":0},{"name":"Axi N6","quantity":32},{"name":"Axi R1","quantity":"1"},{"name":"Axi S2","quantity":17},{"name":"Axi S3","quantity":532},{"name":"Axi S4","quantity":19},{"name":"Axi S5","quantity":3},{"name":"Axi S6","quantity":6},{"name":"Axi S7","quantity":63},{"name":"Axi T1","quantity":4},{"name":"Axi V1","quantity":4},{"name":"Axi V2","quantity":69},{"name":"Axi V8","quantity":680},{"name":"Axi V9","quantity":0},{"name":"Lith A1","quantity":128},{"name":"Lith B1","quantity":8},{"name":"Lith B4","quantity":280},{"name":"Lith C5","quantity":45},{"name":"Lith G1","quantity":5},{"name":"Lith G2","quantity":1},{"name":"Lith H1","quantity":22},{"name":"Lith M1","quantity":62},{"name":"Lith M2","quantity":50},{"name":"Lith N2","quantity":36},{"name":"Lith N3","quantity":7},{"name":"Lith O2","quantity":6},{"name":"Lith S3","quantity":2},{"name":"Lith S4","quantity":42},{"name":"Lith T3","quantity":6},{"name":"Lith T6","quantity":163},{"name":"Lith V1","quantity":304},{"name":"Lith V2","quantity":185},{"name":"Lith V6","quantity":1},{"name":"Lith V7","quantity":9},{"name":"Lith V8","quantity":9},{"name":"Meso B1","quantity":40},{"name":"Meso B3","quantity":22},{"name":"Meso C1","quantity":0},{"name":"Meso C3","quantity":13},{"name":"Meso E1","quantity":2},{"name":"Meso F1","quantity":2},{"name":"Meso F2","quantity":19},{"name":"Meso F3","quantity":"0"},{"name":"Meso M1","quantity":7},{"name":"Meso N2","quantity":93},{"name":"Meso N3","quantity":"0"},{"name":"Meso N4","quantity":5},{"name":"Meso N6","quantity":383},{"name":"Meso N8","quantity":"22"},{"name":"Meso O3","quantity":4},{"name":"Meso O4","quantity":14},{"name":"Meso S2","quantity":45},{"name":"Meso S3","quantity":5},{"name":"Meso S4","quantity":4},{"name":"Meso S5","quantity":85},{"name":"Meso S9","quantity":60},{"name":"Meso V1","quantity":90},{"name":"Meso V2","quantity":64},{"name":"Meso V6","quantity":9},{"name":"Neo A4","quantity":2},{"name":"Neo B3","quantity":0},{"name":"Neo D1","quantity":7},{"name":"Neo F1","quantity":4},{"name":"Neo K3","quantity":88},{"name":"Neo N11","quantity":10},{"name":"Neo N2","quantity":21,"display":false},{"name":"Neo N3","quantity":20,"display":false},{"name":"Neo N5","quantity":10},{"name":"Neo N6","quantity":11},{"name":"Neo N7","quantity":19},{"name":"Neo N9","quantity":19},{"name":"Neo O1","quantity":37},{"name":"Neo R1","quantity":308},{"name":"Neo S1","quantity":8},{"name":"Neo S10","quantity":18},{"name":"Neo S13","quantity":23},{"name":"Neo S2","quantity":13},{"name":"Neo S5","quantity":29},{"name":"Neo V1","quantity":5},{"name":"Neo V2","quantity":15},{"name":"Neo V3","quantity":139},{"name":"Neo V4","quantity":48},{"name":"Neo V5","quantity":163},{"name":"Neo V8","quantity":2},{"name":"Neo Z8","quantity":121}]
 var relicDB:Array<relicProps> = []
 interface Iitems_list {
     [key: string]: {
@@ -59,8 +63,7 @@ interface Iitems_list {
         tags: Array<string>,
     }
 }
-var items_list:Iitems_list = {
-}
+var items_list:Iitems_list = {}
 
 interface IshowTiers {
     lith: boolean,
@@ -70,14 +73,6 @@ interface IshowTiers {
 }
 
 var showTiers:IshowTiers = {lith:true,meso:true,neo:true,axi:true}
-
-event.on('itemsListFetch', (data) => {
-    // convert into keys for faster access
-    data.forEach((item:any) => {
-        items_list[item.item_url as keyof Iitems_list] = item
-    })
-})
-
 
 interface IInventoryProps {
 }
@@ -104,6 +99,10 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
             });
         });
         event.on('itemsListFetch', (data) => {
+            // convert into keys for faster access
+            data.forEach((item:any) => {
+                items_list[item.item_url as keyof Iitems_list] = item
+            })
             this.setState({updateCards: !this.state.updateCards});
         })
         event.on('configFetchComplete', (data:any) => {
@@ -120,6 +119,7 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
         if (option=="updateCards") this.setState({updateCards: true});
         if (option=="searchRelic") this.setState({searchRelic: arg});
     }
+
     render() {
         return (
             <Grid container spacing={4}>
@@ -136,7 +136,7 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
                                 if (relic.display || !relic.hasOwnProperty("display"))
                                     if (this.state.searchRelic.length == 0 || this.state.searchRelic.includes(relic.name))
                                         return <Grid item key={`card${relic.name.replace(/ /g,'_')}`}>
-                                                    <RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} childCallback={this.childCallback}/>
+                                                    <RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} refinement={relic.refinement} childCallback={this.childCallback}/>
                                                 </Grid>
                             }
                         })}
@@ -147,21 +147,24 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
     }
 }
 
-
 interface IRelicCardProps {
     name: string,
     quantity: number,
     opened: number,
+    refinement: {cycle: string, refinement: string},
     childCallback: Function
 }
 interface IRelicCardState {
     name: string,
     quantity: number,
     opened: number,
+    refinement: {cycle: string, refinement: string},
     childCallback: Function,
-    image: string
+    image: string,
+    open: boolean,
+    selectCycleValue: string,
+    selectRefinementValue: string,
 }
-
 
 class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
     constructor(props:any) {
@@ -170,8 +173,12 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
         name: this.props.name,
         quantity: this.props.quantity,
         opened: this.props.opened,
+        refinement: this.props.refinement,
         childCallback: this.props.childCallback,
-        image: this.props.name.match('Lith')? lith:this.props.name.match('Meso')? meso:this.props.name.match('Neo')? neo:this.props.name.match('Axi')? axi:''
+        image: this.props.name.match('Lith')? lith:this.props.name.match('Meso')? meso:this.props.name.match('Neo')? neo:this.props.name.match('Axi')? axi:'',
+        open: false,
+        selectCycleValue: this.props.refinement.cycle,
+        selectRefinementValue: this.props.refinement.refinement,
       };
     }
     updateRelicDB = () => {
@@ -247,6 +254,25 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
           </React.Fragment>
         )
     }
+    handleSettingsOpen = () => {
+      this.setState({open: true});
+    };
+  
+    handleSettingsClose = () => {
+        relicDB.map((relic, i) => {
+            if (relic.name == this.state.name) 
+                this.setState({open: false, selectCycleValue: relic.refinement.cycle, selectRefinementValue: relic.refinement.refinement});
+        })
+    };
+
+    handleSettingsApply = () => {
+        relicDB.map((relic, i) => {
+            if (relic.name == this.state.name) 
+                relicDB[i].refinement = {cycle: this.state.selectCycleValue, refinement: this.state.selectRefinementValue}
+        })
+        event.emit('postRelicDB', relicDB)
+    };
+
     render() {
         return (
             <Card variant="outlined" style={{width: "215px",borderWidth:"1px",color: this.state.quantity <= (config as any).inv_loths_val ? ((config as any).inv_loths_col):(this.state.quantity < (config as any).inv_upths_val ? '':(config as any).inv_upths_col)}}>
@@ -286,12 +312,52 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
                                             <IconButton aria-label="minusone" color="secondary" onClick={this.handleRelicRemoveOne} style={{boxShadow:"none"}}><Remove /></IconButton>
                                         </Repeatable>
                                         <IconButton aria-label="delete" color="error" onClick={this.handleRelicDelete} style={{boxShadow:"none"}}><Delete /></IconButton>
+                                        <IconButton aria-label="delete" onClick={this.handleSettingsOpen} style={{boxShadow:"none"}}><Settings /></IconButton>
                                     </ButtonGroup>
+
                                 </Grid>
                             </Typography>
                         </CardContent>
                     </Tooltip>
                 </CardActionArea>
+                <Dialog open={this.state.open} onClose={this.handleSettingsClose} fullWidth={true} maxWidth={"sm"}>
+                    <DialogTitle>{this.state.name}</DialogTitle>
+                    <DialogContent>
+                        <Grid container spacing={1} justifyContent="center" alignItems="center">
+                            <Grid item xs={2}>
+                                <Typography style={{paddingTop: '20px'}}>Refinement:</Typography>
+                            </Grid>
+                            <Grid item xs={10}>
+                                <FormControl variant="standard" sx={{ m: 1, minWidth: 60 }}>
+                                    <Select
+                                        value={this.state.selectCycleValue}
+                                        onChange= {(e) => this.setState({selectCycleValue: e.target.value})}
+                                    >
+                                        <MenuItem value='1b1'>1b1</MenuItem>
+                                        <MenuItem value='2b2'>2b2</MenuItem>
+                                        <MenuItem value='3b3'>3b3</MenuItem>
+                                        <MenuItem value='4b4'>4b4</MenuItem>
+                                    </Select>
+                                </FormControl>
+                                <FormControl variant="standard" sx={{ m: 1, minWidth: 60 }}>
+                                    <Select
+                                        value={this.state.selectRefinementValue}
+                                        onChange= {(e) => this.setState({selectRefinementValue: e.target.value})}
+                                    >
+                                        <MenuItem value='int'>int</MenuItem>
+                                        <MenuItem value='exc'>exc</MenuItem>
+                                        <MenuItem value='flaw'>flaw</MenuItem>
+                                        <MenuItem value='rad'>rad</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                        </Grid>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={this.handleSettingsApply}>Apply</Button>
+                        <Button onClick={this.handleSettingsClose}>Close</Button>
+                    </DialogActions>
+                </Dialog>
             </Card>
         )
     }
@@ -404,7 +470,8 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
                     name: convertUpper(str),
                     quantity: 0,
                     opened: 0,
-                    display: true
+                    display: true,
+                    refinement: {cycle: '4b4', refinement: 'rad'}
                 })
                 relicDB = relicDB.sort(dynamicSort("name"))
                 this.setState({dialogMsg: 'Added: ' + convertUpper(str) + ' Relic',input: ''});
