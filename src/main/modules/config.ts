@@ -22,6 +22,11 @@ interface Iconfig {
         offcycleRelics: Array<string>,
         offcycleRefinement: string
     }>,
+    tradeHotkeyModifier: string,
+    tradeHotkey: string,
+    enableHotkey: boolean,
+    hotkeyRandomizer: boolean,
+    hotkeySequential: boolean,
 }
 
 const config_default:Iconfig = {
@@ -32,7 +37,12 @@ const config_default:Iconfig = {
     inv_upths_col: '#43e6a2',
     inv_loths_col: '#4783ad',
     startUpOnBoot: false,
-    customHosts: []
+    customHosts: [],
+    tradeHotkeyModifier: 'ctrl',
+    tradeHotkey: 'num8',
+    enableHotkey: true,
+    hotkeyRandomizer: true,
+    hotkeySequential: false,
 }
 var config:Iconfig= config_default
 

@@ -229,7 +229,6 @@ app.whenReady().then(() => {
       // dock icon is clicked and there are no other windows open.
       if (mainWindow === null) createWindow();
     });
-    globalHotkeys()
   }).catch(console.log);
 
 app.on('will-quit', () => {
@@ -287,6 +286,13 @@ function emitError(title:string, text:string) {
 }
 
 /*********************** GLOBAL HOTKEYS ***************************/
+var config:any = {}
+var seqCounter = 0
+mainEvent.on('configFetch',(data:any) => {
+  config = data
+  globalShortcut.unregisterAll()
+  if (config.enableHotkey) globalHotkeys()
+})
 import {keyboard, Key, getActiveWindow} from "@nut-tree/nut-js"
 var all_pastas:Array<string> = []
 ipcMain.on('pastasFetch', (e,data) => {
@@ -298,27 +304,31 @@ function globalHotkeys() {
     return list[Math.floor((Math.random()*list.length))];
   }
   keyboard.config.autoDelayMs = 10
-  const hotkeys = ['ctrl+num8']
-  hotkeys.forEach(hotkey => {
-    const ret = globalShortcut.register(hotkey, async () => {
-      console.log(`${hotkey} is pressed`)
-      if (all_pastas.length > 0) {
-        const windowRef = await getActiveWindow()
-        const title = await windowRef.title
-        console.log(title)
-        if (title.toLowerCase().match('warframe')) {
+  const hotkey = config.tradeHotkeyModifier == 'None' ? config.tradeHotkey : `${config.tradeHotkeyModifier}+${config.tradeHotkey}`
+  const ret = globalShortcut.register(hotkey, async () => {
+    console.log(`${hotkey} is pressed`)
+    if (all_pastas.length > 0) {
+      const windowRef = await getActiveWindow()
+      const title = await windowRef.title
+      console.log(title)
+      if (title.toLowerCase().match('warframe') || 1) {
+        if (config.hotkeyRandomizer)
           Electron.clipboard.writeText(get_random(all_pastas))
-          await keyboard.pressKey(Key.LeftControl)
-          await keyboard.pressKey(Key.V)
-          await keyboard.releaseKey(Key.V)
-          await keyboard.releaseKey(Key.LeftControl)
-          await keyboard.pressKey(Key.Enter)
-          await keyboard.releaseKey(Key.Enter)
+        else if (config.hotkeySequential) {
+          Electron.clipboard.writeText(all_pastas[seqCounter])
+          seqCounter++;
+          if (seqCounter >= all_pastas.length) seqCounter = 0
         }
+        await keyboard.pressKey(Key.LeftControl)
+        await keyboard.pressKey(Key.V)
+        await keyboard.releaseKey(Key.V)
+        await keyboard.releaseKey(Key.LeftControl)
+        await keyboard.pressKey(Key.Enter)
+        await keyboard.releaseKey(Key.Enter)
       }
-    })
-    if (!ret) {
-      emitError('Error registering hotkey',`Could not register hotkey: ${hotkey}`)
     }
   })
+  if (!ret) {
+    emitError('Error registering hotkey',`Could not register hotkey: ${hotkey}`)
+  }
 }

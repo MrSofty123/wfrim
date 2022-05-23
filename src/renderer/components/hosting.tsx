@@ -18,15 +18,10 @@ import {
     TextField,
     TextareaAutosize,
     CssBaseline,
-    Paper,
     IconButton,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Tooltip
+    Table,TableBody,TableCell,TableContainer,TableHead,TableRow,
+    Tooltip,
+    Select,SelectChangeEvent,MenuItem
 } from '@mui/material';
 import {
     Delete,
@@ -83,6 +78,11 @@ interface IHostingState {
     buttonCopyTextTrading: string,
     tradingStartText: string,
     tradingEndText: string,
+    tradeHotkeyModifier: string,
+    tradeHotkey: string,
+    enableHotkey: boolean,
+    hotkeyRandomizer: boolean,
+    hotkeySequential: boolean,
 }
 
 class Hosting extends React.Component<IHostingProps,IHostingState> {
@@ -103,6 +103,11 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
         buttonCopyTextTrading: '',
         tradingStartText: '',
         tradingEndText: '',
+        tradeHotkeyModifier: 'ctrl',
+        tradeHotkey: 'num8',
+        enableHotkey: true,
+        hotkeyRandomizer: true,
+        hotkeySequential: false,
       };
     }
     
@@ -118,7 +123,13 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
             });
         });
         event.on('configFetchComplete', (data:any) => {
-            this.setState({update: !this.state.update});
+            this.setState({
+                tradeHotkeyModifier: (config as any).tradeHotkeyModifier, 
+                tradeHotkey: (config as any).tradeHotkey,
+                enableHotkey: (config as any).enableHotkey,
+                hotkeyRandomizer: (config as any).hotkeyRandomizer,
+                hotkeySequential: (config as any).hotkeySequential,
+            });
         })
     }
 
@@ -196,9 +207,32 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
         event.emit('postPastas', all_pastas)
     }
 
-    hostsCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        showTiers[event.target.id as keyof IshowTiers] = event.target.checked
+    hostsCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        showTiers[e.target.id as keyof IshowTiers] = e.target.checked
         this.computeTexts()
+    }
+
+    hotkeyCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.id == 'enableHotkey') {
+            this.setState({enableHotkey: e.target.checked}, () => {
+                (config as any).enableHotkey = this.state.enableHotkey;
+                event.emit('postConfig', config)
+            })
+        }
+        if (e.target.id == 'hotkeyRandomizer') {
+            this.setState({hotkeyRandomizer: e.target.checked,hotkeySequential: !e.target.checked}, () => {
+                (config as any).hotkeyRandomizer = this.state.hotkeyRandomizer;
+                (config as any).hotkeySequential = this.state.hotkeySequential;
+                event.emit('postConfig', config)
+            })
+        }
+        if (e.target.id == 'hotkeySequential') {
+            this.setState({hotkeySequential: e.target.checked,hotkeyRandomizer: !e.target.checked}, () => {
+                (config as any).hotkeySequential = this.state.hotkeySequential;
+                (config as any).hotkeyRandomizer = this.state.hotkeyRandomizer;
+                event.emit('postConfig', config)
+            })
+        }
     }
 
     handleHostsCustomKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -254,12 +288,29 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
             this.setState({hostsCustomText: ''})
         }
     }
+
+    handleHotkeyChange = (e: SelectChangeEvent) => {
+        if (e.target.name == 'selectTradeHotkeyModifier') {
+            this.setState({tradeHotkeyModifier: e.target.value}, () => {
+                (config as any).tradeHotkeyModifier = this.state.tradeHotkeyModifier;
+                event.emit('postConfig', config)
+            })
+        }
+        if (e.target.name == 'selectTradeHotkey') {
+            this.setState({tradeHotkey: e.target.value}, () => {
+                (config as any).tradeHotkey = this.state.tradeHotkey;
+                event.emit('postConfig', config)
+            })
+        }
+    }
   
     closeShowCustomHosts = () => {
         this.setState({openShowCustomHosts: false})
     };
 
     render() {
+        const hotkeysModifiers = ['None','ctrl','alt','shift']
+        const hotkeys = ['num1','num2','num3','num4','num5','num6','num7','num8','num9','num0','1','2','3','4','5','6','7','8','9','0',"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
         return (<React.Fragment>
             <Grid container maxHeight={'90vh'} overflow='auto'>
                 <CssBaseline />
@@ -338,21 +389,41 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
                     </Grid>
                     <Grid item xs={12}>
                         <Grid item xs={12}>
-                            <div style={{display: 'flex',alignItems: 'center'}}>
-                                <Typography style={{fontSize: '36px'}}>Trading</Typography>
-                                <Tooltip title={this.state.buttonCopyTextTrading} open={this.state.buttonCopyTextTrading == ''? false:true} placement='right'>
-                                    <Button 
-                                    variant="outlined" 
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(this.state.textTrading);
-                                        this.setState({buttonCopyTextTrading: 'Copied!'}, () => setTimeout(() => this.setState({buttonCopyTextTrading: ''}), 3000))
-                                    }} 
-                                    style={{marginLeft: '20px'}} size='small'>Copy</Button>
-                                </Tooltip>
-                            </div>
+                            <Typography style={{fontSize: '36px'}}>Trading</Typography>
                         </Grid>
                         <Grid item xs={12}>
                             <TextareaAutosize minRows={10} maxRows={10} value={this.state.textTrading} style={{color:'white',backgroundColor:'#171717',resize:'none', width:'100%'}} readOnly/>
+                        </Grid>
+                        <div style={{display: 'flex',alignItems: 'center'}}>
+                            <Typography>Hotkey:</Typography>
+                            <Select
+                                value={this.state.tradeHotkeyModifier}
+                                name = 'selectTradeHotkeyModifier'
+                                onChange={this.handleHotkeyChange}
+                                size = 'small'
+                                style={{marginLeft: '10px'}}
+                            >
+                                {hotkeysModifiers.map(hotkey => {
+                                    return <MenuItem value={hotkey}>{hotkey}</MenuItem>
+                                })}
+                            </Select>
+                            <Typography style={{marginLeft: '10px'}}>+</Typography>
+                            <Select
+                                value={this.state.tradeHotkey}
+                                name = 'selectTradeHotkey'
+                                onChange={this.handleHotkeyChange}
+                                size = 'small'
+                                style={{marginLeft: '10px'}}
+                            >
+                                {hotkeys.map(hotkey => {
+                                    return <MenuItem value={hotkey}>{hotkey}</MenuItem>
+                                })}
+                            </Select>
+                        </div>    
+                        <Grid item xs={12}>
+                            <FormControlLabel style={{marginLeft: '20px'}} control={<Checkbox onChange={this.hotkeyCheckboxChange} checked={this.state.enableHotkey} id='enableHotkey'/>} label="Enable Hotkey" />
+                            <FormControlLabel control={<Checkbox onChange={this.hotkeyCheckboxChange} checked={this.state.hotkeyRandomizer} id='hotkeyRandomizer'/>} label="Randomized" />
+                            <FormControlLabel control={<Checkbox onChange={this.hotkeyCheckboxChange} checked={this.state.hotkeySequential} id="hotkeySequential"/>} label="Sequential" />
                         </Grid>
                     </Grid>
                 </Grid>
