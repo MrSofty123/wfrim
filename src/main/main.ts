@@ -103,7 +103,7 @@ fs.open(appFolder + 'config.json','r',function(notexists, f) {
 });
 */
 
-import { app, BrowserWindow, shell, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, dialog, ipcMain, globalShortcut } from 'electron';
 import Electron from 'electron'
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
@@ -112,10 +112,6 @@ import { resolveHtmlPath } from './util';
 import './ipcHandler'
 import './modules/log_reader'
 import {mainEvent} from './eventHandler'
-import { argv } from 'process';
-
-
-
 
 export default class AppUpdater {
   constructor() {
@@ -226,17 +222,20 @@ app.on('window-all-closed', () => {
   }
 });
 
-app
-  .whenReady()
-  .then(() => {
+app.whenReady().then(() => {
     createWindow();
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
       // dock icon is clicked and there are no other windows open.
       if (mainWindow === null) createWindow();
     });
-  })
-  .catch(console.log);
+    globalHotkeys()
+  }).catch(console.log);
+
+app.on('will-quit', () => {
+  // Unregister all shortcuts.
+  globalShortcut.unregisterAll()
+})
 
 mainEvent.on('toggleStartUp', (arg) => {
   app.setLoginItemSettings({
@@ -249,7 +248,7 @@ mainEvent.on('toggleStartUp', (arg) => {
 //------------------ autoUpdater HANDLES --------------------
 //------------------ mainEvent HANDLES --------------------
 mainEvent.on('error', (err) => {
-  displayAlert(err.title,err.text)
+  emitError(err.title,err.text)
 })
 
 mainEvent.on('itemsListFetch', function itemsListFetch(data) {
@@ -282,14 +281,44 @@ mainEvent.on('importSRBResponse', function importSRBResponse(data) {
   else mainWindow?.webContents.send('importSRBResponse', data)
 })
 
-//autoUpdater.on('checking-for-update', () => displayAlert('update', 'Checking for update.'))
-//autoUpdater.on('update-available', () => displayAlert('update','Update available.'));
-//autoUpdater.on('update-not-available', () => displayAlert('update','Update not available.'));
-//autoUpdater.on('update-downloaded', () => displayAlert('update','Update downloaded.'));
-//autoUpdater.on('error', (err) => displayAlert('update error',JSON.stringify(err)));
-//autoUpdater.on('download-progress', (progressObj) => displayAlert('update error','Downloaded: ' + progressObj.percent));
-
-function displayAlert(title:string, text:string) {
-  if (!mainWindow) setTimeout(displayAlert, 1000, title, text)
+function emitError(title:string, text:string) {
+  if (!mainWindow) setTimeout(emitError, 1000, title, text)
   else dialog.showMessageBox((mainWindow as BrowserWindow), { title: title, message: text})
+}
+
+/*********************** GLOBAL HOTKEYS ***************************/
+import {keyboard, Key, getActiveWindow} from "@nut-tree/nut-js"
+var all_pastas:Array<string> = []
+ipcMain.on('pastasFetch', (e,data) => {
+  all_pastas = typeof data == 'object' ? data : JSON.parse(data)
+})
+
+function globalHotkeys() {
+  function get_random (list:Array<any>) {
+    return list[Math.floor((Math.random()*list.length))];
+  }
+  keyboard.config.autoDelayMs = 10
+  const hotkeys = ['ctrl+num8']
+  hotkeys.forEach(hotkey => {
+    const ret = globalShortcut.register(hotkey, async () => {
+      console.log(`${hotkey} is pressed`)
+      if (all_pastas.length > 0) {
+        const windowRef = await getActiveWindow()
+        const title = await windowRef.title
+        console.log(title)
+        if (title.toLowerCase().match('warframe')) {
+          Electron.clipboard.writeText(get_random(all_pastas))
+          await keyboard.pressKey(Key.LeftControl)
+          await keyboard.pressKey(Key.V)
+          await keyboard.releaseKey(Key.V)
+          await keyboard.releaseKey(Key.LeftControl)
+          await keyboard.pressKey(Key.Enter)
+          await keyboard.releaseKey(Key.Enter)
+        }
+      }
+    })
+    if (!ret) {
+      emitError('Error registering hotkey',`Could not register hotkey: ${hotkey}`)
+    }
+  })
 }

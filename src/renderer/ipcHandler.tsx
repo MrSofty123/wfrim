@@ -36,6 +36,9 @@ event.on('postRelicDB', (data) => {
 event.on('postConfig', (data) => {
     window.electron.ipcRenderer.sendMain('postConfig', data);
 })
+event.on('postPastas', (data) => {
+    window.electron.ipcRenderer.sendMain('pastasFetch', data);
+})
 event.on('toggleStartUp', (arg) => {
     window.electron.ipcRenderer.sendMain('toggleStartUp', arg);
 })

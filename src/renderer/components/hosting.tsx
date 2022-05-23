@@ -79,6 +79,10 @@ interface IHostingState {
     alertTitle: string,
     alertContent: string,
     buttonCopyText: string,
+    textTrading: string,
+    buttonCopyTextTrading: string,
+    tradingStartText: string,
+    tradingEndText: string,
 }
 
 class Hosting extends React.Component<IHostingProps,IHostingState> {
@@ -95,16 +99,22 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
         alertTitle: '',
         alertContent: '',
         buttonCopyText: '',
+        textTrading: '',
+        buttonCopyTextTrading: '',
+        tradingStartText: '',
+        tradingEndText: '',
       };
     }
     
     componentDidMount() {
         this.computeTexts()
+        this.computeTextTrading()
         event.on('relicDBFetch', (data) => {
             relicDB = []
             this.setState({update: !this.state.update}, () => {
                 relicDB = typeof data == 'object' ? data:JSON.parse(data as string)
                 this.computeTexts()
+                this.computeTextTrading()
             });
         });
         event.on('configFetchComplete', (data:any) => {
@@ -164,6 +174,26 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
                         temp1.push(`${relic.name} ${relic.refinement.cycle} ${relic.refinement.refinement} ${this.state.hostsCycleCount > 0 ? `${this.state.hostsCycleCount}+ cycles`:''}`.trim())
         });
         this.setState({textCopyHosts: temp1.sort().join('\n')})
+    }
+
+    computeTextTrading = () => {
+        var all_pastas: Array<string> = []
+        var startText = (this.state.tradingStartText + ' WTB ').trim()
+        var endText = ('5p ea ' + this.state.tradingEndText).trim()
+        var temp = startText + ' '
+        relicDB.forEach((relic, index:number) => {
+            var relicStr = `[${relic.name} relic]`
+            if ((temp + relicStr + endText).length <= 120) temp += relicStr
+            else {
+                temp += ' ' + endText
+                all_pastas.push(temp)
+                temp = startText + ' ' + relicStr
+            }
+        })
+        all_pastas.push(temp + ' ' + endText)
+        //all_pastas.forEach((pasta) => console.log(pasta.length))
+        this.setState({textTrading: all_pastas.join('\n')})
+        event.emit('postPastas', all_pastas)
     }
 
     hostsCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -233,7 +263,7 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
         return (<React.Fragment>
             <Grid container maxHeight={'90vh'} overflow='auto'>
                 <CssBaseline />
-                <Grid container columnSpacing={2} rowSpacing={2} justifyContent="left" alignItems="left">
+                <Grid container columnSpacing={2} rowSpacing={2} justifyContent="left" alignItems="left" minWidth='500px'>
                     <Grid item xs={12}>
                         <Grid item xs={12}>
                             <div style={{display: 'flex',alignItems: 'center'}}>
@@ -293,7 +323,7 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
                             <FormControlLabel control={<Checkbox defaultChecked onChange={this.hostsCheckboxChange} id="axi"/>} label="Axi" />
                         </Grid>
                         <Grid item xs={12}>
-                            <TextareaAutosize minRows={10} maxRows={10} value={this.state.textCopyHosts} style={{color:'white',backgroundColor:'#171717',resize:'none',width: '300px'}} readOnly/>
+                            <TextareaAutosize minRows={10} maxRows={10} value={this.state.textCopyHosts} style={{color:'white',backgroundColor:'#171717',resize:'none',width:'50%'}} readOnly/>
                         </Grid>
                         <div style={{display: 'flex',alignItems: 'center'}}>
                             <Typography>Custom Hosts</Typography>
@@ -305,6 +335,25 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
                             <Input placeholder="<relic> <refinement>" value={this.state.hostsCustomText} style={{width:'270px',backgroundColor:'#171717'}} onChange={(e) => this.setState({hostsCustomText: e.target.value})} onKeyUp={this.handleHostsCustomKeyUp}/>
                             <IconButton onClick={() => this.setState({openShowCustomHosts: true})} style={{boxShadow:"none", marginLeft: '5px'}}><Settings /></IconButton>
                         </div>
+                    </Grid>
+                    <Grid item xs={12}>
+                        <Grid item xs={12}>
+                            <div style={{display: 'flex',alignItems: 'center'}}>
+                                <Typography style={{fontSize: '36px'}}>Trading</Typography>
+                                <Tooltip title={this.state.buttonCopyTextTrading} open={this.state.buttonCopyTextTrading == ''? false:true} placement='right'>
+                                    <Button 
+                                    variant="outlined" 
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(this.state.textTrading);
+                                        this.setState({buttonCopyTextTrading: 'Copied!'}, () => setTimeout(() => this.setState({buttonCopyTextTrading: ''}), 3000))
+                                    }} 
+                                    style={{marginLeft: '20px'}} size='small'>Copy</Button>
+                                </Tooltip>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextareaAutosize minRows={10} maxRows={10} value={this.state.textTrading} style={{color:'white',backgroundColor:'#171717',resize:'none', width:'100%'}} readOnly/>
+                        </Grid>
                     </Grid>
                 </Grid>
                 <Dialog open={this.state.openShowCustomHosts} onClose={this.closeShowCustomHosts} fullWidth={true} maxWidth={"sm"}>
