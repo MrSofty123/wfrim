@@ -39,7 +39,7 @@ import neo from '../../../assets/neo.png'
 import axi from '../../../assets/axi.png'
 import Repeatable from 'react-repeatable'
 */
-import {convertUpper,dynamicSort} from './extras'
+import {convertUpper,dynamicSort,dynamicSortDesc} from './extras'
 
 import {config} from './config'
 import { Event } from 'electron';
@@ -49,6 +49,8 @@ interface relicProps {
     quantity: number,
     opened: number,
     display: boolean,
+    wtb: boolean,
+    buy_price: number,
     refinement: {cycle: string, refinement: string}
 }
 var relicDB:Array<relicProps> = []
@@ -188,17 +190,23 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
     }
 
     computeTextTrading = () => {
+        relicDB = relicDB.sort(dynamicSortDesc('buy_price'))   // sort according to buy_price
         var all_pastas: Array<string> = []
         var startText = (this.state.tradingStartText + ' WTB ').trim()
-        var endText = ('5p ea ' + this.state.tradingEndText).trim()
         var temp = startText + ' '
+        var last_price = relicDB[0]?.buy_price
+        var endText = (`${last_price}p ea ` + this.state.tradingEndText).trim()
         relicDB.forEach((relic, index:number) => {
             var relicStr = `[${relic.name} relic]`
-            if ((temp + relicStr + endText).length <= 120) temp += relicStr
+            if (((temp + relicStr + endText).length <= 120) && (last_price == relic.buy_price)) temp += relicStr
             else {
                 temp += ' ' + endText
                 all_pastas.push(temp)
                 temp = startText + ' ' + relicStr
+                if (last_price != relic.buy_price) {
+                    last_price = relicDB[index+1]?.buy_price
+                    endText = (`${last_price}p ea ` + this.state.tradingEndText).trim()
+                }
             }
         })
         all_pastas.push(temp + ' ' + endText)

@@ -22,7 +22,8 @@ import {
     CssBaseline,
     Select,
     MenuItem,
-    FormControl
+    FormControl,
+    Input
 } from '@mui/material';
 import {
     AddBox,
@@ -47,6 +48,8 @@ interface relicProps {
     quantity: number,
     opened: number,
     display: boolean,
+    wtb: boolean,
+    buy_price: number,
     refinement: {cycle: string, refinement: string}
 }
 var relicDB:Array<relicProps> = []
@@ -136,7 +139,7 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
                                 if (relic.display || !relic.hasOwnProperty("display"))
                                     if (this.state.searchRelic.length == 0 || this.state.searchRelic.includes(relic.name))
                                         return <Grid item key={`card${relic.name.replace(/ /g,'_')}`}>
-                                                    <RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} refinement={relic.refinement} childCallback={this.childCallback}/>
+                                                    <RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} refinement={relic.refinement} wtb={relic.wtb} buy_price={relic.buy_price} childCallback={this.childCallback}/>
                                                 </Grid>
                             }
                         })}
@@ -151,8 +154,10 @@ interface IRelicCardProps {
     name: string,
     quantity: number,
     opened: number,
+    wtb: boolean,
+    buy_price: number,
     refinement: {cycle: string, refinement: string},
-    childCallback: Function
+    childCallback: Function,
 }
 interface IRelicCardState {
     name: string,
@@ -164,6 +169,8 @@ interface IRelicCardState {
     open: boolean,
     selectCycleValue: string,
     selectRefinementValue: string,
+    wtb: boolean,
+    buy_price: number
 }
 
 class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
@@ -179,6 +186,8 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
         open: false,
         selectCycleValue: this.props.refinement.cycle,
         selectRefinementValue: this.props.refinement.refinement,
+        wtb: this.props.wtb,
+        buy_price: this.props.buy_price
       };
     }
     updateRelicDB = () => {
@@ -267,8 +276,11 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
 
     handleSettingsApply = () => {
         relicDB.map((relic, i) => {
-            if (relic.name == this.state.name) 
+            if (relic.name == this.state.name) {
                 relicDB[i].refinement = {cycle: this.state.selectCycleValue, refinement: this.state.selectRefinementValue}
+                relicDB[i].wtb = this.state.wtb
+                relicDB[i].buy_price = this.state.buy_price
+            }
         })
         event.emit('postRelicDB', relicDB)
     };
@@ -324,32 +336,53 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
                     <DialogTitle>{this.state.name}</DialogTitle>
                     <DialogContent>
                         <Grid container spacing={1} justifyContent="center" alignItems="center">
-                            <Grid item xs={2}>
-                                <Typography style={{paddingTop: '20px'}}>Refinement:</Typography>
-                            </Grid>
-                            <Grid item xs={10}>
-                                <FormControl variant="standard" sx={{ m: 1, minWidth: 60 }}>
+                            <Grid item xs={12}>
+                                <div style={{display: 'flex',alignItems: 'center'}}>
+                                    <Typography>Refinement:</Typography>
                                     <Select
                                         value={this.state.selectCycleValue}
                                         onChange= {(e) => this.setState({selectCycleValue: e.target.value})}
+                                        size = 'small'
+                                        style={{marginLeft: '10px'}}
                                     >
                                         <MenuItem value='1b1'>1b1</MenuItem>
                                         <MenuItem value='2b2'>2b2</MenuItem>
                                         <MenuItem value='3b3'>3b3</MenuItem>
                                         <MenuItem value='4b4'>4b4</MenuItem>
                                     </Select>
-                                </FormControl>
-                                <FormControl variant="standard" sx={{ m: 1, minWidth: 60 }}>
                                     <Select
                                         value={this.state.selectRefinementValue}
                                         onChange= {(e) => this.setState({selectRefinementValue: e.target.value})}
+                                        size = 'small'
+                                        style={{marginLeft: '10px'}}
                                     >
                                         <MenuItem value='int'>int</MenuItem>
                                         <MenuItem value='exc'>exc</MenuItem>
                                         <MenuItem value='flaw'>flaw</MenuItem>
                                         <MenuItem value='rad'>rad</MenuItem>
                                     </Select>
-                                </FormControl>
+                                </div>
+                            </Grid>
+                            <Grid item xs={12}>
+                                <div style={{display: 'flex',alignItems: 'center'}}>
+                                    <FormControlLabel control={<Checkbox checked={this.state.wtb} onChange={(e) => this.setState({wtb: e.target.checked})}/>} label="Want to Buy" />
+                                    <Typography style={{marginLeft: '20px'}}>Buy price:</Typography>
+                                    <Input
+                                        value={this.state.buy_price}
+                                        size="small"
+                                        onChange={(e) => this.setState({buy_price: e.target.value === '' ? 1:Number(e.target.value)})}
+                                        inputProps={{
+                                            step: 1,
+                                            min: 1,
+                                            max: 100,
+                                            type: 'number',
+                                        }}
+                                        style= {{
+                                            width: '50px',
+                                            marginLeft: '10px'
+                                        }}
+                                    />
+                                </div>
                             </Grid>
                         </Grid>
                     </DialogContent>
@@ -471,7 +504,9 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
                     quantity: 0,
                     opened: 0,
                     display: true,
-                    refinement: {cycle: '4b4', refinement: 'rad'}
+                    refinement: {cycle: '4b4', refinement: 'rad'},
+                    wtb: true,
+                    buy_price: 5
                 })
                 relicDB = relicDB.sort(dynamicSort("name"))
                 this.setState({dialogMsg: 'Added: ' + convertUpper(str) + ' Relic',input: ''});
