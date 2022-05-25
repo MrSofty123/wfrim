@@ -41,7 +41,6 @@ import axi from '../../../assets/axi.png'
 import Repeatable from 'react-repeatable'
 import {convertUpper,dynamicSort} from './extras'
 import {config} from './config'
-import { KeyFormat } from 'crypto';
 
 interface relicProps {
     name: string,
@@ -119,7 +118,7 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
     }
 
     childCallback = (option:string, arg:any) => {
-        if (option=="updateCards") this.setState({updateCards: true});
+        if (option=="updateCards") this.setState({updateCards: !this.state.updateCards});
         if (option=="searchRelic") this.setState({searchRelic: arg});
     }
 
@@ -508,7 +507,7 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
                     wtb: true,
                     buy_price: 5
                 })
-                relicDB = relicDB.sort(dynamicSort("name"))
+                relicDB.sort(dynamicSort("name"))
                 this.setState({dialogMsg: 'Added: ' + convertUpper(str) + ' Relic',input: ''});
                 this.props.childCallback('updateCards', null)
                 event.emit('postRelicDB', relicDB)

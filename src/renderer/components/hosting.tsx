@@ -190,27 +190,25 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
     }
 
     computeTextTrading = () => {
-        relicDB = relicDB.sort(dynamicSortDesc('buy_price'))   // sort according to buy_price
+        let temp1 = Array.from(relicDB)
+        temp1.sort(dynamicSortDesc('buy_price'))
         var all_pastas: Array<string> = []
         var startText = (this.state.tradingStartText + ' WTB ').trim()
         var temp = startText + ' '
-        var last_price = relicDB[0]?.buy_price
-        var endText = (`${last_price}p ea ` + this.state.tradingEndText).trim()
-        relicDB.forEach((relic, index:number) => {
+        var endText = (`${temp1[0]?.buy_price}p ea ` + this.state.tradingEndText).trim()
+        temp1.forEach((relic, index:number) => {
+            if (!relic.wtb) return
             var relicStr = `[${relic.name} relic]`
-            if (((temp + relicStr + endText).length <= 120) && (last_price == relic.buy_price)) temp += relicStr
+            if ((index == 0) || ((temp + relicStr + endText).length <= 120) && (temp1[index-1].buy_price == relic.buy_price)) temp += relicStr
             else {
                 temp += ' ' + endText
                 all_pastas.push(temp)
                 temp = startText + ' ' + relicStr
-                if (last_price != relic.buy_price) {
-                    last_price = relicDB[index+1]?.buy_price
-                    endText = (`${last_price}p ea ` + this.state.tradingEndText).trim()
-                }
+                if (temp1[index-1]?.buy_price != relic.buy_price)
+                    endText = (`${relic.buy_price}p ea ` + this.state.tradingEndText).trim()
             }
         })
         all_pastas.push(temp + ' ' + endText)
-        //all_pastas.forEach((pasta) => console.log(pasta.length))
         this.setState({textTrading: all_pastas.join('\n')})
         event.emit('postPastas', all_pastas)
     }

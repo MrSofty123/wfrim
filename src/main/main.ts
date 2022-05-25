@@ -319,7 +319,7 @@ function globalHotkeys() {
       const windowRef = await getActiveWindow()
       const title = await windowRef.title
       console.log(title)
-      if (title.toLowerCase().match('warframe') || 1) {
+      if (title.toLowerCase().match('warframe')) {
         if (config.hotkeyRandomizer)
           Electron.clipboard.writeText(get_random(all_pastas))
         else if (config.hotkeySequential) {
