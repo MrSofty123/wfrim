@@ -333,6 +333,8 @@ function globalHotkeys() {
         await keyboard.releaseKey(Key.LeftControl)
         await keyboard.pressKey(Key.Enter)
         await keyboard.releaseKey(Key.Enter)
+        await keyboard.pressKey(Key.T)
+        await keyboard.releaseKey(Key.T)
       }
     }
   })
