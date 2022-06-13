@@ -72,7 +72,8 @@ mainEvent.on('statisticsDateUpdate', (data) => {
     getStatisticsTimer = setTimeout(getStatistics, 10)
 })
 
-getEELogFD()
+var getEELogFDTimer:ReturnType<typeof setTimeout>;
+getEELogFDTimer = setTimeout(getEELogFD, 50)
 function getEELogFD() {
     fs.open(eeLogPath, 'r', function(err, fd) { 
         eeLogFD = fd;
@@ -84,22 +85,29 @@ function readsome() {
     var stats = fs.fstatSync(eeLogFD); // yes sometimes async does not make sense!
     if(stats.size<readbytes+1) {
         if (new Date().getTime() - new Date(stats.mtime).getTime() > 60000) { // no changes in past 2m look for new file stream
-            console.log('eeLog descripter possibly closed. watch for new file change')
+            console.log(`eeLog descripter possibly closed. watch for new file change. Path: ${eeLogPath}`)
+            eeLogContents = fs.readFileSync(eeLogPath,'utf-8').replace(/^\uFEFF/, '')
+            logRead()  // perform logRead one last time
             // reset vars states
-            fs.close(eeLogFD)
-            logPrefix = ''
-            eeLogContents = ''
-            readbytes = 0
-            client_lang = ''
-            const eeLogWatcher = fs.watch(eeLogPath,(event,filename) => {
-                if (event == 'change') {
-                    console.log('eeLog has changed. Opening new descripter')
-                    getEELogFD()
-                    eeLogWatcher.close()
-                }
-            })
+            try {
+                fs.close(eeLogFD)
+                logPrefix = ''
+                eeLogContents = ''
+                readbytes = 0
+                client_lang = ''
+                const eeLogWatcher = fs.watch(eeLogPath,(event,filename) => {
+                    if (event == 'change' || event == 'rename') {
+                        console.log('eeLog has changed. Opening new descripter')
+                        clearTimeout(getEELogFDTimer)
+                        getEELogFDTimer = setTimeout(getEELogFD, 500)
+                        eeLogWatcher.close()
+                    }
+                })
+            } catch (err) {
+                emitError('Error in log reader', err)
+            }
         } else {
-            eeLogContents = eeLogContents.substring(eeLogContents.length - 100000) // strip old data from var
+            eeLogContents = eeLogContents.substring(eeLogContents.length - 200000) // strip old data from var
             if (client_lang != 'en')
                 if ((lang as any)[client_lang]) 
                     (lang as any)[client_lang].forEach((obj:any) => eeLogContents=eeLogContents.replace(obj.match,obj.replace))  // translate from other languages
@@ -187,7 +195,7 @@ function watchLogs() {
 var combineFiles = false
 var logPrefix = ''
 
-function logRead () {
+function logRead() {
     if (logPrefix == '') { //current time not written yet
         console.log('logPrefix not written yet')
         return

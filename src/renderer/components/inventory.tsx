@@ -464,6 +464,9 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
                     }
                 }
             })
+            relicDB.forEach(relic => {
+                if (relic.name.match('^' + str + '\W*')) relicsList.push(relic.name)
+            })
         }
         this.props.childCallback('searchRelic', relicsList)
     }
