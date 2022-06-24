@@ -235,6 +235,10 @@ function logRead() {
                     }
                     var temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
                     //translates.forEach(obj => temp=temp.replace(obj.match,obj.replace))  // translate from other languages
+                    if (temp.match('Script Info: Dialog.lua: Dialog::CreateOkdescription=The trade failed., leftItem=\/Menu\/Confirm_Item_Ok')) {
+                        tradeSuccess = false
+                        break
+                    }
                     if (temp.match('Script Info: Dialog.lua: Dialog::CreateOkdescription=The trade was successful!, leftItem=\/Menu\/Confirm_Item_Ok')) {
                         tradeSuccess = true
                         complete_seq = "s_" + (temp.split(' '))[0]

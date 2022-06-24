@@ -344,3 +344,8 @@ function globalHotkeys() {
     emitError('Error registering hotkey',`Could not register hotkey: ${hotkey}`)
   }
 }
+
+process.on('uncaughtException', function (err) {
+  // Handle the error
+  emitError('Uncaught error in main process', err.stack? err.stack:JSON.stringify(err))
+})

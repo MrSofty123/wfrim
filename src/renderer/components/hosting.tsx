@@ -202,12 +202,12 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
             if (!relic.display) return
             if (!relic.wtb) return
             relicStr = `[${relic.name} relic]`
-            if ((index == 0) || ((pasta + relicStr + priceText + endText).length <= 120) && (temp1[index-1].buy_price == relic.buy_price)) pasta += relicStr
+            if ((index == 0) || ((pasta + relicStr + ' ' + priceText + endText).length <= 180) && (temp1[index-1].buy_price == relic.buy_price)) pasta += relicStr
             else {
                 pasta += ' ' + priceText
                 if (temp1[index-1]?.buy_price != relic.buy_price)
                     priceText = `${relic.buy_price}p ea`
-                if ((pasta + relicStr + priceText + endText).length > 120) {
+                if ((pasta + relicStr + ' ' + priceText + endText).length > 180) {
                     all_pastas.push(pasta)
                     pasta = startText + ' ' + relicStr
                 } 
