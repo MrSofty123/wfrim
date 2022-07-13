@@ -60,10 +60,13 @@ const byte_size = 100000
 var readbytes = 0
 var eeLogFD:any
 var logPrefix:string = ''
+var gameStartTime:number = 0
 var client_lang:string = ''
 var defaultStartDate:number = 1364169600000
 var startDate:number = defaultStartDate
 var endDate:number|null = null
+var combineFiles = false
+
 mainEvent.on('statisticsDateUpdate', (data) => {
     startDate = new Date(data.startDate).getTime()
     endDate = data.endDate == null ? null : new Date(data.endDate).getTime() + 86400000
@@ -72,6 +75,7 @@ mainEvent.on('statisticsDateUpdate', (data) => {
     getStatisticsTimer = setTimeout(getStatistics, 10)
 })
 
+/*
 var getEELogFDTimer:ReturnType<typeof setTimeout>;
 getEELogFDTimer = setTimeout(getEELogFD, 50)
 function getEELogFD() {
@@ -80,7 +84,9 @@ function getEELogFD() {
         readsome(); 
     });
 }
+*/
 
+/*
 function readsome() {
     var stats = fs.fstatSync(eeLogFD); // yes sometimes async does not make sense!
     if(stats.size<readbytes+1) {
@@ -91,10 +97,13 @@ function readsome() {
             // reset vars states
             try {
                 fs.close(eeLogFD)
-                logPrefix = ''
-                eeLogContents = ''
-                readbytes = 0
-                client_lang = ''
+                setTimeout(() => {
+                    logPrefix = ''
+                    eeLogContents = ''
+                    readbytes = 0
+                    client_lang = ''
+                    gameStartTime = 0
+                }, 10000);
                 const eeLogWatcher = fs.watch(eeLogPath,(event,filename) => {
                     if (event == 'change' || event == 'rename') {
                         console.log('eeLog has changed. Opening new descripter')
@@ -107,7 +116,7 @@ function readsome() {
                 emitError('Error in log reader', err)
             }
         } else {
-            eeLogContents = eeLogContents.substring(eeLogContents.length - 200000) // strip old data from var
+            eeLogContents = eeLogContents.substring(eeLogContents.length - 100000) // strip old data from var
             if (client_lang != 'en')
                 if ((lang as any)[client_lang]) 
                     (lang as any)[client_lang].forEach((obj:any) => eeLogContents=eeLogContents.replace(obj.match,obj.replace))  // translate from other languages
@@ -147,6 +156,9 @@ function processsome(err:any, bytecount:number, buff:any) {
             if (line.match(`Diag: Current time:`)) {
                 const temp = line.split('UTC:')
                 logPrefix = temp[1].replace(/ /g,'').replace(/\:/g,'')
+                const temp1 = line.split(' ')
+                gameStartTime = new Date(temp1[5] + ' ' +temp1[6] + ' ' +temp1[7] + ' ' +temp1[8] + ' ' +temp1[9]).getTime()
+                console.log('game start time',gameStartTime)
                 break
             }
         }
@@ -157,7 +169,34 @@ function processsome(err:any, bytecount:number, buff:any) {
     clearTimeout(logReadTimer)
     logReadTimer = setTimeout(logRead, 500);
 }
+*/
 /************************************************/
+
+var eeLogWatcher:fs.StatWatcher;
+/*
+initEeLogWatcher()
+function initEeLogWatcher() {
+    console.log('watching eeLog file')
+    eeLogWatcher = fs.watch(eeLogPath,(event,filename) => {
+        console.log('some change in eelog. event is',event)
+        if (event == 'change') {
+            console.log('eelog changed')
+            logRead()
+        }
+        else if (event == 'rename') {
+            console.log('received rename event. re-opening eelogwatcher')
+            eeLogWatcher.close()
+            initEeLogWatcher()
+        }
+    })
+}
+*/
+
+eeLogWatcher = fs.watchFile(eeLogPath, {persistent:true,interval:3000},(curr, prev) => {
+    console.log('eelog changed')
+    logRead()
+})
+
 
 const logsWatcher = fs.watch(appFolder + 'logs',(event,filename) => {
     if (event == 'change') {
@@ -192,19 +231,46 @@ function watchLogs() {
 }
 */
 //watchLogs()
-var combineFiles = false
-var logPrefix = ''
 
 function logRead() {
+    eeLogContents = fs.readFileSync(eeLogPath,'utf-8').replace(/^\uFEFF/, '')
+    const logArr = eeLogContents.split('\r\n')
+    for (const [index,val] of logArr.entries()) {
+        const line = val.replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
+        if (line.match(`Diag: Current time:`)) {
+            const temp = line.split('UTC:')
+            logPrefix = temp[1].replace(/ /g,'').replace(/\:/g,'')
+            const temp1 = line.split(' ')
+            gameStartTime = new Date(temp1[5] + ' ' +temp1[6] + ' ' +temp1[7] + ' ' +temp1[8] + ' ' +temp1[9]).getTime()
+            console.log('game start time',gameStartTime)
+            break
+        }
+        if (line.match(`-language:en`)) client_lang = 'en'
+        if (line.match(`-language:zh`)) client_lang = 'zh'
+        if (line.match(`-language:tc`)) client_lang = 'tc'
+        if (line.match(`-language:fr`)) client_lang = 'fr'
+    }
     if (logPrefix == '') { //current time not written yet
         console.log('logPrefix not written yet')
         return
     }
+    if (client_lang == '') {
+        emitError('No language support', 'Sorry your client language is not supported for automatic log reading for now. Please contact the developer MrSofty#7926 on Discord or open issue request on GitHub https://github.com/MrSofty123/wfrim/issues')
+        console.log('shutting down log reader')
+        //eeLogWatcher.close()
+        fs.unwatchFile(eeLogPath)
+        return
+    }
+    if (client_lang != 'en')
+        if ((lang as any)[client_lang]) 
+            (lang as any)[client_lang].forEach((obj:any) => eeLogContents=eeLogContents.replace(obj.match,obj.replace))  // translate from other languages
+
     if (!combineFiles) combineFilesFunc()
+
     getFile(appFolder + `logs/${logPrefix}_log.json`).then(data => {
         //console.log(JSON.stringify(data))
         var logfile:any = typeof data == 'object' ? data:JSON.parse((data as string).replace(/^\uFEFF/, ''))
-        const logArr = eeLogContents.split('\r\n')  // eeLogContents is a global variable, ee.log contents are continuously logged in here, see above
+        //const logArr = eeLogContents.split('\r\n')  // eeLogContents is a global variable, ee.log contents are continuously logged in here, see above
         var logChanged = false
         for (const [index1,val] of logArr.entries()) {
             var eventHandled:boolean = false
@@ -279,7 +345,7 @@ function logRead() {
                 //console.log(JSON.stringify(offeringItems))
                 //console.log(JSON.stringify(receivingItems))
 
-                logfile.trades.push({log_seq: log_seq, complete_seq: complete_seq,client_lang: client_lang, trader: trader, offeringItems: offeringItems, receivingItems: receivingItems, status: "successful", timestamp: new Date()})
+                logfile.trades.push({log_seq: log_seq, complete_seq: complete_seq,client_lang: client_lang, trader: trader, offeringItems: offeringItems, receivingItems: receivingItems, status: "successful", timestamp: new Date(gameStartTime + Number((line.split(' '))[0]) * 1000)})
                 wfTradeHandler(offeringItems,receivingItems)
                 continue
                 //wfTradeHandler(log_seq,complete_seq,trader,offeringItems,receivingItems,"successful")
@@ -326,7 +392,7 @@ function logRead() {
                 relicEquipped = temp[11] + "_" + temp[12] + "_relic"
                 refinement = line.toLowerCase().match('radiant') ? 'radiant' : (line.toLowerCase().match('flawless') ? 'flawless' : (line.toLowerCase().match('exceptional') ? 'exceptional':'intact'))
                 // Commit event to file
-                logfile.mission_initialize.push({log_seq: log_seq, complete_seq: complete_seq,client_lang: client_lang, relicEquipped: relicEquipped, refinement: refinement, fissureNode: {seq: 'N/A yet', mission: {}}, status: "unsuccessful", timestamp: new Date(), complete_timestamp: -1})
+                logfile.mission_initialize.push({log_seq: log_seq, complete_seq: complete_seq,client_lang: client_lang, relicEquipped: relicEquipped, refinement: refinement, fissureNode: {seq: 'N/A yet', mission: {}}, status: "unsuccessful", timestamp: new Date(gameStartTime + Number((line.split(' '))[0]) * 1000), complete_timestamp: -1})
                 continue
             }
             eventHandled = false
@@ -348,7 +414,7 @@ function logRead() {
                 for (const [index,mission] of logfile.mission_initialize.entries()) {
                     if (mission.complete_seq=="N/A Yet") {      
                         logfile.mission_initialize[index].complete_seq = complete_seq
-                        logfile.mission_initialize[index].complete_timestamp = new Date()
+                        logfile.mission_initialize[index].complete_timestamp = new Date(gameStartTime + Number((line.split(' '))[0]) * 1000)
                         logfile.mission_initialize[index].status = "successful"
                         // Retrieve info for event handle
                         relicEquipped = logfile.mission_initialize[index].relicEquipped
