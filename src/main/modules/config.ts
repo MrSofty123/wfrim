@@ -8,6 +8,7 @@ const appFolder = Os.homedir() + '/Documents/WFRIM/'
 
 interface Iconfig {
     device_id: string,
+    username: string,
     showDropsonHover: boolean,
     inv_upths_val: number,
     inv_loths_val: number,
@@ -31,6 +32,7 @@ interface Iconfig {
 
 const config_default:Iconfig = {
     device_id: randomUUID(),
+    username: getUsername(),
     showDropsonHover: true,
     inv_upths_val: 10,
     inv_loths_val: 0,
@@ -82,6 +84,20 @@ ipcMain.on('postConfig', (event,data) => {
     mainEvent.emit('configFetch',config)
 })
 //
+
+function getUsername() {
+    var eeLogContents = fs.readFileSync(Os.homedir() + '/AppData/Local/Warframe/EE.log','utf-8').replace(/^\uFEFF/, '')
+    const logArr = eeLogContents.split('\r\n')
+    var username = ""
+    for (const [index,val] of logArr.entries()) {
+        const line = val.replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
+        if (line.match(`Logged in`)) {
+            username = (line.split(' '))[5]
+            break
+        }
+    }
+    return username
+}
 
 getConfig().then(() => {mainEvent.emit('configFetch',config)}).catch(err => mainEvent.emit('error',{title: 'Error in getConfig()', text: JSON.stringify(err.stack)}))
 

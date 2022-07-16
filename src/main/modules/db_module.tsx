@@ -4,20 +4,20 @@ import {mainEvent} from '../eventHandler'
 import fs from 'fs';
 import Os from 'os';
 import {config} from './config'
-/*
-interface Iconfig {
-    device_id: string
-}
-var config: Iconfig | null = null
-*/
+
 let pool: PoolClient | null = null;
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
 
 
 database_connection().then(res => pool=(res as PoolClient)).catch(err => emitError('Database connection failure', err))
 
-pushRelicDB()
-mainEvent.on('pushRelicDB', () => pushRelicDB())
+var pushRelicDBTimer:ReturnType<typeof setTimeout>;
+pushRelicDBTimer = setTimeout(pushRelicDB, 300000);
+
+fs.watchFile(appFolder + 'relicsDB.json', (curr, prev) => {
+    clearTimeout(pushRelicDBTimer)
+    pushRelicDBTimer = setTimeout(pushRelicDB, 300000);
+})
 
 function pushRelicDB() {
     if (!pool) {
@@ -25,22 +25,6 @@ function pushRelicDB() {
         console.log('db not ready yet')
         return;
     } 
-    /*
-    const filepath = appFolder + 'config.json'
-    fs.readFile(filepath,'utf8',(err,data) => {
-        if (err) emitError(`Error reading file ${filepath}`,err)
-        config = JSON.parse(data)
-    })
-    if (!config) {
-        setTimeout(pushRelicDB, 1000);
-        console.log('config var not set')
-        return;
-    }
-    */
-    if (!pool) {
-        setTimeout(pushRelicDB, 1000);
-        return
-    }
     (pool as PoolClient).connect((err: any, client:PoolClient, release:any) => {
         if (err) {
             emitError('Error database connection', err.stack)
@@ -57,20 +41,34 @@ function pushRelicDB() {
                     release()
                     return release();
                 }
-                const filepath = appFolder + 'relicsDB.json'
-                fs.readFile(filepath,'utf8',(err,data) => {
+                var relic_db = ''
+                var runs_log = {
+                    mission_initialize: [] as Array<any>,
+                    trades: [] as Array<any>
+                }
+                try {
+                    relic_db = fs.readFileSync(appFolder + 'relicsDB.json','utf-8').replace(/^\uFEFF/, '')
+                    const filenames = fs.readdirSync(appFolder + 'logs');
+                    filenames.forEach(file => {
+                        const filecontent = JSON.parse(fs.readFileSync(appFolder + 'logs/' + file,'utf-8').replace(/^\uFEFF/, ''));
+                        filecontent.mission_initialize.forEach((mission:any) => {
+                            runs_log.mission_initialize.push(mission)
+                        });
+                        filecontent.trades.forEach((trade:any) => {
+                            runs_log.trades.push(trade)
+                        })
+                    });
+                } catch (err) {
+                    emitError('error pushing db', err)
+                    release()
+                    return release()
+                }
+                client.query(`UPDATE wfrim_db SET relics='${relic_db.replace(/'/g,`''`)}', timestamp=${new Date().getTime()}, runs_log='${JSON.stringify(runs_log).replace(/'/g,`''`)}', username='${(config as any).username}' WHERE device_id='${(config as any).device_id}'`, (err,res) => {
+                    release()
                     if (err) {
-                        emitError(`Error reading file ${filepath}`,err.stack)
-                        release()
+                        emitError('DB Query Error', err.stack)
                         return release();
                     }
-                    client.query(`UPDATE wfrim_db SET relic_db='${data.replace(/^\uFEFF/, '')}', relic_db_timestamp=${new Date().getTime()} WHERE device_id='${(config as Iconfig).device_id}'`, (err,res) => {
-                        release()
-                        if (err) {
-                            emitError('DB Query Error', err.stack)
-                            return release();
-                        }
-                    })
                 })
             })
         }
@@ -84,10 +82,6 @@ function itemsListFetch() {
         setTimeout(itemsListFetch, 1000);
         console.log('db not ready yet')
         return;
-    }
-    if (!pool) {
-        setTimeout(itemsListFetch, 1000);
-        return
     }
     (pool as PoolClient).connect((err:any, client:PoolClient, release:any) => {
         if (err) {
@@ -112,5 +106,5 @@ function itemsListFetch() {
 }
 
 function emitError(title:string,err:any) {
-    mainEvent.emit('error', {title: title, text: JSON.stringify(err)})
+    mainEvent.emit('error', {title: title, text: typeof err == 'object' ? (err.stack ? JSON.stringify(err.stack):JSON.stringify(err)) : err})
 }
