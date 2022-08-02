@@ -236,12 +236,11 @@ function logRead() {
     eeLogContents = fs.readFileSync(eeLogPath,'utf-8').replace(/^\uFEFF/, '')
     const logArr = eeLogContents.split('\r\n')
     for (const [index,val] of logArr.entries()) {
-        const line = val.replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
-        if (line.match(`Diag: Current time:`)) {
-            const temp = line.split('UTC:')
-            logPrefix = temp[1].replace(/ /g,'').replace(/\:/g,'')
-            const temp1 = line.split(' ')
-            gameStartTime = new Date(temp1[5] + ' ' +temp1[6] + ' ' +temp1[7] + ' ' +temp1[8] + ' ' +temp1[9]).getTime()
+        const line = val
+        if (line.match(`\\[Diag\\]: Current time:`)) {
+            logPrefix = (line.split('UTC:'))[1].replace(/ /g,'').replace(/\:/g,'').replace(/]/g,'')
+            const temp = line.replace(/  /g, ' ').split(' ')
+            gameStartTime = new Date(temp[5] + ' ' +temp[6] + ' ' +temp[7] + ' ' +temp[8] + ' ' +temp[9]).getTime()
             console.log('game start time',gameStartTime)
             break
         }
@@ -280,10 +279,8 @@ function logRead() {
             var trader:string = ""
             var log_seq:string = ""
             var complete_seq:string = ""
-            const line = val.replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
-            //translates.forEach(obj => line=line.replace(obj.match,obj.replace))  // translate from other languages
-            //if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=')) console.log(line)
-            if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=Are you sure you want to accept this trade')) {
+            const line = val
+            if (line.match('Script \\[Info\\]: Dialog.lua: Dialog::CreateOkCancel\\(description=Are you sure you want to accept this trade')) {
                 log_seq = "s_" + (line.split(' '))[0]
                 for (const [index,val] of logfile.trades.entries()) {
                     if (val.log_seq==log_seq) {       // Event already handled
@@ -299,13 +296,13 @@ function logRead() {
                         tradeSuccess = false
                         break
                     }
-                    var temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
+                    var temp = logArr[i]
                     //translates.forEach(obj => temp=temp.replace(obj.match,obj.replace))  // translate from other languages
-                    if (temp.match('Script Info: Dialog.lua: Dialog::CreateOkdescription=The trade failed., leftItem=\/Menu\/Confirm_Item_Ok')) {
+                    if (temp.match('Script \\[Info\\]: Dialog.lua: Dialog::CreateOk\\(description=The trade failed., leftItem=/Menu/Confirm_Item_Ok')) {
                         tradeSuccess = false
                         break
                     }
-                    if (temp.match('Script Info: Dialog.lua: Dialog::CreateOkdescription=The trade was successful!, leftItem=\/Menu\/Confirm_Item_Ok')) {
+                    if (temp.match('Script \\[Info\\]: Dialog.lua: Dialog::CreateOk\\(description=The trade was successful!, leftItem=/Menu/Confirm_Item_Ok')) {
                         tradeSuccess = true
                         complete_seq = "s_" + (temp.split(' '))[0]
                         break
@@ -333,7 +330,6 @@ function logRead() {
                 if (!tradeSuccess) continue
                 var receiveFlag = 0
                 allItems.forEach(item => {
-                    //translates.forEach(obj => item=item.replace(obj.match,obj.replace))  // translate from other languages
                     if (item.match('and will receive from')) {
                         receiveFlag = 1
                         trader = (item.split(' '))[4]
@@ -342,15 +338,10 @@ function logRead() {
                         else offeringItems.push(item.replace(/ /g,'_'))
                     }
                 })
-                //console.log(JSON.stringify(offeringItems))
-                //console.log(JSON.stringify(receivingItems))
 
                 logfile.trades.push({log_seq: log_seq, complete_seq: complete_seq,client_lang: client_lang, trader: trader, offeringItems: offeringItems, receivingItems: receivingItems, status: "successful", timestamp: new Date(gameStartTime + Number((line.split(' '))[0]) * 1000)})
                 wfTradeHandler(offeringItems,receivingItems)
                 continue
-                //wfTradeHandler(log_seq,complete_seq,trader,offeringItems,receivingItems,"successful")
-                //gosub filterRelics
-                //SetTimer, updateWFLoggerInfo, -2000
             }
             eventHandled = false
             var equipSuccess:boolean = false
@@ -358,7 +349,7 @@ function logRead() {
             var refinement = ""
             log_seq = ""
             complete_seq = ""
-            if (line.match('Script Info: Dialog.lua: Dialog::CreateOkCanceldescription=Are you sure you want to equip')) {
+            if (line.match('Script \\[Info\\]: Dialog.lua: Dialog::CreateOkCancel\\(description=Are you sure you want to equip')) {
                 log_seq = "s_" + (line.split(' '))[0]
                 for (const [index,val] of logfile.mission_initialize.entries()) {
                     if (val.log_seq==log_seq) {       // Event already handled
@@ -372,8 +363,8 @@ function logRead() {
                         equipSuccess = false
                         break
                     }
-                    const temp = logArr[i].replace(/\[/g, '').replace(/]/g, '').replace(/\(/g, '').replace(/\)/g, '')
-                    if (temp.match('Script Info: Dialog.lua: Dialog::SendResult4')) {
+                    const temp = logArr[i]
+                    if (temp.match('Script \\[Info\\]: Dialog.lua: Dialog::SendResult\\(4\\)')) {
                         equipSuccess = true
                         complete_seq = "N/A Yet"
                         break
@@ -399,7 +390,7 @@ function logRead() {
             log_seq = ""
             relicEquipped = ""
             complete_seq = ""
-            if (line.match('Script Info: ProjectionRewardChoice.lua: Got rewards')) {
+            if (line.match('Script \\[Info\\]: ProjectionRewardChoice.lua: Got rewards')) {
                 complete_seq = "s_" + (line.split(' '))[0]
                 for (const [index,val] of logfile.mission_initialize.entries()) {
                     if (val.complete_seq==complete_seq) {       // Event already handled
@@ -408,7 +399,6 @@ function logRead() {
                     }
                 }
                 if (eventHandled) continue
-                logChanged = true
                 console.log('found gotRewards at '+ complete_seq)
                 // Find the recent unsuccessful event
                 for (const [index,mission] of logfile.mission_initialize.entries()) {
@@ -418,17 +408,19 @@ function logRead() {
                         logfile.mission_initialize[index].status = "successful"
                         // Retrieve info for event handle
                         relicEquipped = logfile.mission_initialize[index].relicEquipped
+                        logChanged = true
+                        wfMissionHandler(relicEquipped)
                         break
                     }
                 }
-                wfMissionHandler(relicEquipped)
                 //gosub filterRelics
                 //SetTimer, updateWFLoggerInfo, -2000
                 continue
             }
+            /*
             eventHandled = false
             var fissureNode = {seq: 'N/A yet', mission: {}}
-            if (line.match('Sys Info: Client loaded')) {
+            if (line.match('Sys \\[Info\\]: Client loaded')) {
                 fissureNode.seq = "s_" + (line.split(' '))[0]
                 for (const [index,val] of logfile.mission_initialize.entries()) {
                     if (val.fissureNode.seq==fissureNode.seq) {       // Event already handled
@@ -437,18 +429,19 @@ function logRead() {
                     }
                 }
                 if (eventHandled) continue
-                logChanged = true
                 console.log('found mission loading at '+ fissureNode.seq)
                 fissureNode.mission = JSON.parse((line.split(' '))[5])
                 // Find the recent unsuccessful event
                 for (const [index,mission] of logfile.mission_initialize.entries()) {
                     if (mission.complete_seq=="N/A Yet") {
                         logfile.mission_initialize[index].fissureNode = fissureNode
+                        logChanged = true
                         break
                     }
                 }
                 continue
             }
+            */
         }
         //console.log(JSON.stringify(logfile))
         if (logChanged) {
