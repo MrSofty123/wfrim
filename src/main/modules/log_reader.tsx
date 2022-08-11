@@ -66,6 +66,10 @@ var defaultStartDate:number = 1364169600000
 var startDate:number = defaultStartDate
 var endDate:number|null = null
 var combineFiles = false
+var parseLast10:boolean = false
+setTimeout(() => {
+    parseLast10 = true
+}, 30000);
 
 mainEvent.on('statisticsDateUpdate', (data) => {
     startDate = new Date(data.startDate).getTime()
@@ -192,9 +196,16 @@ function initEeLogWatcher() {
 }
 */
 
+var logReadTimerSet:boolean = false;
 eeLogWatcher = fs.watchFile(eeLogPath, {persistent:true,interval:3000},(curr, prev) => {
     console.log('eelog changed')
-    logRead()
+    if (!logReadTimerSet) {
+        logReadTimerSet = true
+        logReadTimer = setTimeout(() => {
+            logRead()
+            logReadTimerSet = false
+        }, 30000);
+    }
 })
 
 
@@ -272,6 +283,11 @@ function logRead() {
         //const logArr = eeLogContents.split('\r\n')  // eeLogContents is a global variable, ee.log contents are continuously logged in here, see above
         var logChanged = false
         for (const [index1,val] of logArr.entries()) {
+            const line = val
+            if (parseLast10) {
+                if ((new Date().getTime() - (gameStartTime + Number((line.split(' '))[0]) * 1000)) > 600000)
+                    continue
+            }
             var eventHandled:boolean = false
             var tradeSuccess:boolean = false
             var offeringItems:Array<string> = []
@@ -279,7 +295,6 @@ function logRead() {
             var trader:string = ""
             var log_seq:string = ""
             var complete_seq:string = ""
-            const line = val
             if (line.match('Script \\[Info\\]: Dialog.lua: Dialog::CreateOkCancel\\(description=Are you sure you want to accept this trade')) {
                 log_seq = "s_" + (line.split(' '))[0]
                 for (const [index,val] of logfile.trades.entries()) {
