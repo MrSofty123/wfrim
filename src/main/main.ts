@@ -337,6 +337,8 @@ function globalHotkeys() {
         setTimeout(async () => {
           await keyboard.pressKey(Key.T)
           await keyboard.releaseKey(Key.T)
+          await keyboard.pressKey(Key.Backspace)
+          await keyboard.releaseKey(Key.Backspace)
         }, 100);
       }
     }
@@ -357,6 +359,8 @@ function globalHotkeys() {
     setTimeout(async () => {
       await keyboard.pressKey(Key.T)
       await keyboard.releaseKey(Key.T)
+      await keyboard.pressKey(Key.Backspace)
+      await keyboard.releaseKey(Key.Backspace)
     }, 100);
   })
   if (!ret2) {
