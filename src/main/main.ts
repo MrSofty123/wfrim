@@ -120,6 +120,7 @@ import { resolveHtmlPath } from './util';
 import './ipcHandler'
 import './modules/log_reader'
 import {mainEvent} from './eventHandler'
+import './modules/config'
 
 export default class AppUpdater {
   constructor() {
@@ -341,6 +342,24 @@ function globalHotkeys() {
     }
   })
   if (!ret) {
+    emitError('Error registering hotkey',`Could not register hotkey: ${hotkey}`)
+  }
+  const hotkey2 = `ctrl+num9`
+  const ret2 = globalShortcut.register(hotkey2, async () => {
+    console.log(`${hotkey2} is pressed`)
+    Electron.clipboard.writeText(config.customPasta)
+    await keyboard.pressKey(Key.LeftControl)
+    await keyboard.pressKey(Key.V)
+    await keyboard.releaseKey(Key.V)
+    await keyboard.releaseKey(Key.LeftControl)
+    await keyboard.pressKey(Key.Enter)
+    await keyboard.releaseKey(Key.Enter)
+    setTimeout(async () => {
+      await keyboard.pressKey(Key.T)
+      await keyboard.releaseKey(Key.T)
+    }, 100);
+  })
+  if (!ret2) {
     emitError('Error registering hotkey',`Could not register hotkey: ${hotkey}`)
   }
 }

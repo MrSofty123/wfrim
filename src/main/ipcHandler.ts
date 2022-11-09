@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import Os from 'os'
 import { mainEvent } from './eventHandler';
-import './modules/db_module'
+import './modules/api_module'
 
 const appFolder = Os.homedir() + '/Documents/WFRIM/'
 

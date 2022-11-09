@@ -1,7 +1,7 @@
 {
   "name": "wfrim",
   "productName": "WFRIM",
-  "version": "5.6.0",
+  "version": "5.6.1",
   "description": "Warframe Relic Inventory Manager",
   "scripts": {
     "build": "concurrently \"npm run build:main\" \"npm run build:renderer\"",
@@ -177,7 +177,7 @@
     "electron-builder": "^5.35.0",
     "electron-devtools-installer": "^3.2.0",
     "electron-notarize": "^1.2.1",
-    "electron-rebuild": "^3.2.7",
+    "electron-rebuild": "^3.2.9",
     "electronmon": "^2.0.2",
     "eslint": "^8.12.0",
     "eslint-config-airbnb-base": "^15.0.0",
