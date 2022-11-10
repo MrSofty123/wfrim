@@ -334,6 +334,7 @@ function globalHotkeys() {
         await keyboard.releaseKey(Key.LeftControl)
         await keyboard.pressKey(Key.Enter)
         await keyboard.releaseKey(Key.Enter)
+        setTimeout(() => shell.beep(), 119000);
         setTimeout(async () => {
           await keyboard.pressKey(Key.T)
           await keyboard.releaseKey(Key.T)
@@ -356,6 +357,7 @@ function globalHotkeys() {
     await keyboard.releaseKey(Key.LeftControl)
     await keyboard.pressKey(Key.Enter)
     await keyboard.releaseKey(Key.Enter)
+    setTimeout(() => shell.beep(), 119000);
     setTimeout(async () => {
       await keyboard.pressKey(Key.T)
       await keyboard.releaseKey(Key.T)
