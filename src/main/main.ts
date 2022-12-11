@@ -350,7 +350,7 @@ function globalHotkeys() {
   const hotkey2 = `ctrl+num9`
   const ret2 = globalShortcut.register(hotkey2, async () => {
     console.log(`${hotkey2} is pressed`)
-    Electron.clipboard.writeText(config.customPasta)
+    Electron.clipboard.writeText(get_random(config.customPasta))
     await keyboard.pressKey(Key.LeftControl)
     await keyboard.pressKey(Key.V)
     await keyboard.releaseKey(Key.V)
