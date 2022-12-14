@@ -309,9 +309,6 @@ ipcMain.on('pastasFetch', (e,data) => {
 })
 
 function globalHotkeys() {
-  function get_random (list:Array<any>) {
-    return list[Math.floor((Math.random()*list.length))];
-  }
   keyboard.config.autoDelayMs = 10
   const hotkey = config.tradeHotkeyModifier == 'None' ? config.tradeHotkey : `${config.tradeHotkeyModifier}+${config.tradeHotkey}`
   const ret = globalShortcut.register(hotkey, async () => {
@@ -348,26 +345,34 @@ function globalHotkeys() {
     emitError('Error registering hotkey',`Could not register hotkey: ${hotkey}`)
   }
   const hotkey2 = `ctrl+num9`
-  const ret2 = globalShortcut.register(hotkey2, async () => {
-    console.log(`${hotkey2} is pressed`)
-    Electron.clipboard.writeText(get_random(config.customPasta))
-    await keyboard.pressKey(Key.LeftControl)
-    await keyboard.pressKey(Key.V)
-    await keyboard.releaseKey(Key.V)
-    await keyboard.releaseKey(Key.LeftControl)
-    await keyboard.pressKey(Key.Enter)
-    await keyboard.releaseKey(Key.Enter)
-    setTimeout(() => shell.beep(), 119000);
-    setTimeout(async () => {
-      await keyboard.pressKey(Key.T)
-      await keyboard.releaseKey(Key.T)
-      await keyboard.pressKey(Key.Backspace)
-      await keyboard.releaseKey(Key.Backspace)
-    }, 100);
-  })
+  const ret2 = globalShortcut.register(hotkey2, sendCustomPasta)
   if (!ret2) {
     emitError('Error registering hotkey',`Could not register hotkey: ${hotkey}`)
   }
+}
+
+async function sendCustomPasta() {
+  Electron.clipboard.writeText(get_random(config.customPasta))
+  await keyboard.pressKey(Key.LeftControl)
+  await keyboard.pressKey(Key.V)
+  await keyboard.releaseKey(Key.V)
+  await keyboard.releaseKey(Key.LeftControl)
+  await keyboard.pressKey(Key.Enter)
+  await keyboard.releaseKey(Key.Enter)
+  setTimeout(() => shell.beep(), 119000);
+  setTimeout(async () => {
+    await keyboard.pressKey(Key.T)
+    await keyboard.releaseKey(Key.T)
+    await keyboard.pressKey(Key.Backspace)
+    await keyboard.releaseKey(Key.Backspace)
+  }, 100);
+  if (config.autoSpammer) {
+    setTimeout(sendCustomPasta, config.autoSpammerTimeout);
+  }
+}
+
+function get_random (list:Array<any>) {
+  return list[Math.floor((Math.random()*list.length))];
 }
 
 process.on('uncaughtException', function (err) {
