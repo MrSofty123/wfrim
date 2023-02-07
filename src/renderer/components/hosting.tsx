@@ -191,7 +191,7 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
 
     computeTextTrading = () => {
         let temp1 = Array.from(relicDB)
-        temp1.sort(dynamicSortDesc('buy_price'))
+        temp1 = temp1.filter(relic => relic.display && relic.wtb).sort(dynamicSortDesc('buy_price'))
         var all_pastas: Array<string> = []
         var startText = (this.state.tradingStartText + ' WTB ').trim()
         var pasta = startText + ' ';
@@ -199,8 +199,6 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
         var endText = this.state.tradingEndText.trim();
         var relicStr = ''
         temp1.forEach((relic, index:number) => {
-            if (!relic.display) return
-            if (!relic.wtb) return
             relicStr = `[${relic.name} relic]`
             if ((index == 0) || ((pasta + relicStr + ' ' + priceText + endText).length <= 180) && (temp1[index-1].buy_price == relic.buy_price)) pasta += relicStr
             else {
