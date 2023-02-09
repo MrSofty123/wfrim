@@ -48,6 +48,7 @@ interface relicProps {
     opened: number,
     display: boolean,
     wtb: boolean,
+    wth: boolean,
     buy_price: number,
     refinement: {cycle: string, refinement: string}
 }
@@ -138,7 +139,7 @@ class Inventory extends React.Component<IInventoryProps,IInventoryState> {
                                 if (relic.display || !relic.hasOwnProperty("display"))
                                     if (this.state.searchRelic.length == 0 || this.state.searchRelic.includes(relic.name))
                                         return <Grid item key={`card${relic.name.replace(/ /g,'_')}`}>
-                                                    <RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} refinement={relic.refinement} wtb={relic.wtb} buy_price={relic.buy_price} childCallback={this.childCallback}/>
+                                                    <RelicCard name={relic.name} quantity={relic.quantity} opened={relic.opened} refinement={relic.refinement} wtb={relic.wtb} wth={relic.wth} buy_price={relic.buy_price} childCallback={this.childCallback}/>
                                                 </Grid>
                             }
                         })}
@@ -154,6 +155,7 @@ interface IRelicCardProps {
     quantity: number,
     opened: number,
     wtb: boolean,
+    wth: boolean,
     buy_price: number,
     refinement: {cycle: string, refinement: string},
     childCallback: Function,
@@ -169,6 +171,7 @@ interface IRelicCardState {
     selectCycleValue: string,
     selectRefinementValue: string,
     wtb: boolean,
+    wth: boolean,
     buy_price: number
 }
 
@@ -186,6 +189,7 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
         selectCycleValue: this.props.refinement.cycle,
         selectRefinementValue: this.props.refinement.refinement,
         wtb: this.props.wtb,
+        wth: this.props.wth,
         buy_price: this.props.buy_price
       };
     }
@@ -278,6 +282,7 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
             if (relic.name == this.state.name) {
                 relicDB[i].refinement = {cycle: this.state.selectCycleValue, refinement: this.state.selectRefinementValue}
                 relicDB[i].wtb = this.state.wtb
+                relicDB[i].wth = this.state.wth
                 relicDB[i].buy_price = this.state.buy_price
             }
         })
@@ -382,6 +387,9 @@ class RelicCard extends React.Component<IRelicCardProps,IRelicCardState> {
                                         }}
                                     />
                                 </div>
+                            </Grid>
+                            <Grid item xs={12}>
+                                <FormControlLabel control={<Checkbox checked={this.state.wth} onChange={(e) => this.setState({wth: e.target.checked})}/>} label="Want to Host" />
                             </Grid>
                         </Grid>
                     </DialogContent>
@@ -508,6 +516,7 @@ class AddRelic extends React.Component<IAddRelicProps,IAddRelicState> {
                     display: true,
                     refinement: {cycle: '4b4', refinement: 'rad'},
                     wtb: true,
+                    wth: true,
                     buy_price: 5
                 })
                 relicDB.sort(dynamicSort("name"))

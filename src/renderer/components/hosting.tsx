@@ -50,6 +50,7 @@ interface relicProps {
     opened: number,
     display: boolean,
     wtb: boolean,
+    wth: boolean,
     buy_price: number,
     refinement: {cycle: string, refinement: string}
 }
@@ -71,6 +72,7 @@ interface IHostingState {
     hostsCustomText: string,
     hostsQuantityThreshold: number,
     hostsCycleCount: number,
+    steelpath: boolean,
     openShowCustomHosts: boolean,
     alertOpen: boolean,
     alertTitle: string,
@@ -96,6 +98,7 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
         hostsCustomText: '',
         hostsQuantityThreshold: 10,
         hostsCycleCount: 0,
+        steelpath: false,
         openShowCustomHosts: false,
         alertOpen: false,
         alertTitle: '',
@@ -174,7 +177,7 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
                 })
                 if ((mainStatus && host.offcycleRelics.length == 0) || (mainStatus && offcycleStatus)) doHost = true;
                 if (doHost) {
-                    temp1.push(`${host.tier} ${host.mainRelics.join(' ')} ${host.mainCycle} ${host.mainRefinement} ${host.offcycleRefinement == '' ? '':`with ${host.offcycleRelics.join(' ')} ${host.offcycleRefinement} offcycle`} ${this.state.hostsCycleCount > 0 ? `${this.state.hostsCycleCount}+ cycles`:''}`.trim())
+                    temp1.push(`${host.tier} ${host.mainRelics.join(' ')} ${host.mainCycle} ${host.mainRefinement} ${host.offcycleRefinement == '' ? '':`with ${host.offcycleRelics.join(' ')} ${host.offcycleRefinement} offcycle`} ${this.state.steelpath ? 'sp' : ''} ${this.state.hostsCycleCount > 0 ? `${this.state.hostsCycleCount}+ cycles`:''}`.replace(/  /g,' ').trim())
                     host.mainRelics.forEach((hostRelic:string) => hosted.push(`${host.tier} ${hostRelic}`.toLowerCase()))
                     host.offcycleRelics.forEach((hostRelic:string) => hosted.push(`${host.tier} ${hostRelic}`.toLowerCase()))
                 }
@@ -183,8 +186,8 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
         relicDB.map((relic,i) => {
             if (showTiers[(relic.name.split(' '))[0].toLowerCase() as keyof IshowTiers])
                 if (relic.display && !hosted.includes(relic.name.toLowerCase()))
-                    if (relic.quantity >= this.state.hostsQuantityThreshold)
-                        temp1.push(`${relic.name} ${relic.refinement.cycle} ${relic.refinement.refinement} ${this.state.hostsCycleCount > 0 ? `${this.state.hostsCycleCount}+ cycles`:''}`.trim())
+                    if (relic.quantity >= this.state.hostsQuantityThreshold && relic.wth)
+                        temp1.push(`${relic.name} ${relic.refinement.cycle} ${relic.refinement.refinement} ${this.state.steelpath ? 'sp' : ''} ${this.state.hostsCycleCount > 0 ? `${this.state.hostsCycleCount}+ cycles`:''}`.replace(/  /g,' ').trim())
         });
         this.setState({textCopyHosts: temp1.sort().join('\n')})
     }
@@ -358,8 +361,6 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
                                     marginLeft: '20px'
                                 }}
                             />
-                        </div>
-                        <div style={{display: 'flex',alignItems: 'center'}}>
                             <Typography style={{paddingLeft: '52px'}}>Cycle count:</Typography>
                             <Input
                                 value={this.state.hostsCycleCount}
@@ -377,7 +378,9 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
                                 }}
                             />
                         </div>
-                                        
+                        <Grid item xs={12}>
+                            <FormControlLabel control={<Checkbox onChange={(e) => this.setState({steelpath: e.target.checked}, () => this.computeTexts())} id="steelpath"/>} label="Steelpath" />
+                        </Grid>    
                         <Grid item xs={12}>
                             <FormControlLabel control={<Checkbox defaultChecked onChange={this.hostsCheckboxChange} id="lith"/>} label="Lith" />
                             <FormControlLabel control={<Checkbox defaultChecked onChange={this.hostsCheckboxChange} id="meso"/>} label="Meso" />

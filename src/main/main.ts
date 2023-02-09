@@ -53,6 +53,10 @@ fileContent.forEach((item:any, index:number) => {
     change = true
     fileContent[index].wtb = true
   }
+  if (!item.hasOwnProperty('wth')) {
+    change = true
+    fileContent[index].wth = true
+  }
   if (!item.hasOwnProperty('buy_price')) {
     change = true
     fileContent[index].buy_price = 5
