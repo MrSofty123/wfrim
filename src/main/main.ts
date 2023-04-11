@@ -124,7 +124,7 @@ import { resolveHtmlPath } from './util';
 import './ipcHandler'
 import './modules/log_reader'
 import {mainEvent} from './eventHandler'
-import './modules/config'
+import {config} from './modules/config'
 
 export default class AppUpdater {
   constructor() {
@@ -299,10 +299,9 @@ function emitError(title:string, text:string) {
 }
 
 /*********************** GLOBAL HOTKEYS ***************************/
-var config:any = {}
-var seqCounter = 0
+// var config:any = {}
 mainEvent.on('configFetch',(data:any) => {
-  config = data
+  // config = data
   globalShortcut.unregisterAll()
   if (config.enableHotkey) globalHotkeys()
 })
@@ -315,67 +314,90 @@ ipcMain.on('pastasFetch', (e,data) => {
 function globalHotkeys() {
   keyboard.config.autoDelayMs = 10
   const hotkey = config.tradeHotkeyModifier == 'None' ? config.tradeHotkey : `${config.tradeHotkeyModifier}+${config.tradeHotkey}`
-  const ret = globalShortcut.register(hotkey, async () => {
-    console.log(`${hotkey} is pressed`)
-    if (all_pastas.length > 0) {
-      const windowRef = await getActiveWindow()
-      const title = await windowRef.title
-      console.log(title)
-      if (title.toLowerCase().match('warframe')) {
-        if (config.hotkeyRandomizer)
-          Electron.clipboard.writeText(get_random(all_pastas))
-        else if (config.hotkeySequential) {
-          Electron.clipboard.writeText(all_pastas[seqCounter])
-          seqCounter++;
-          if (seqCounter >= all_pastas.length) seqCounter = 0
-        }
-        await keyboard.pressKey(Key.LeftControl)
-        await keyboard.pressKey(Key.V)
-        await keyboard.releaseKey(Key.V)
-        await keyboard.releaseKey(Key.LeftControl)
-        await keyboard.pressKey(Key.Enter)
-        await keyboard.releaseKey(Key.Enter)
-        setTimeout(() => shell.beep(), 119000);
-        setTimeout(async () => {
-          await keyboard.pressKey(Key.T)
-          await keyboard.releaseKey(Key.T)
-          await keyboard.pressKey(Key.Backspace)
-          await keyboard.releaseKey(Key.Backspace)
-        }, 100);
-      }
-    }
-  })
-  if (!ret) {
+  if (!globalShortcut.register(hotkey, sendPasta)) {
     emitError('Error registering hotkey',`Could not register hotkey: ${hotkey}`)
   }
   const hotkey2 = `ctrl+num9`
-  const ret2 = globalShortcut.register(hotkey2, sendCustomPasta)
-  if (!ret2) {
+  if (!globalShortcut.register(hotkey2, sendCustomPasta)) {
     emitError('Error registering hotkey',`Could not register hotkey: ${hotkey}`)
   }
 }
 
-async function sendCustomPasta() {
-  Electron.clipboard.writeText(get_random(config.customPasta))
-  await keyboard.pressKey(Key.LeftControl)
-  await keyboard.pressKey(Key.V)
-  await keyboard.releaseKey(Key.V)
-  await keyboard.releaseKey(Key.LeftControl)
-  await keyboard.pressKey(Key.Enter)
-  await keyboard.releaseKey(Key.Enter)
-  setTimeout(() => shell.beep(), 119000);
-  setTimeout(async () => {
-    await keyboard.pressKey(Key.T)
-    await keyboard.releaseKey(Key.T)
-    await keyboard.pressKey(Key.Backspace)
-    await keyboard.releaseKey(Key.Backspace)
-  }, 100);
-  if (config.autoSpammer) {
-    setTimeout(sendCustomPasta, config.autoSpammerTimeout);
+var beepTimeout:any = null
+function activateBeep(timeout:number) {
+  clearTimeout(beepTimeout)
+  beepTimeout = setTimeout(() => shell.beep(), timeout);
+}
+
+var seqCounter = 0
+var sendPastaTimeout:any = null
+async function sendPasta() {
+  if (all_pastas.length > 0) {
+    const windowRef = await getActiveWindow()
+    const title = await windowRef.title
+    console.log(title)
+    if (title == 'Warframe') {
+      if (config.hotkeyRandomizer)
+        Electron.clipboard.writeText(get_random(all_pastas))
+      else if (config.hotkeySequential) {
+        Electron.clipboard.writeText(all_pastas[seqCounter])
+        seqCounter++;
+        if (seqCounter >= all_pastas.length) seqCounter = 0
+      }
+      await keyboard.pressKey(Key.LeftControl)
+      await keyboard.pressKey(Key.V)
+      await keyboard.releaseKey(Key.V)
+      await keyboard.releaseKey(Key.LeftControl)
+      await keyboard.pressKey(Key.Enter)
+      await keyboard.releaseKey(Key.Enter)
+      setTimeout(async () => {
+        await keyboard.pressKey(Key.T)
+        await keyboard.releaseKey(Key.T)
+        await keyboard.pressKey(Key.Backspace)
+        await keyboard.releaseKey(Key.Backspace)
+      }, 100);
+      activateBeep(119500)
+      if (config.autoSpammer) {
+        clearTimeout(sendPastaTimeout)
+        sendPastaTimeout = setTimeout(sendPasta, config.autoSpammerTimeout);
+      }
+    }
   }
 }
 
-function get_random (list:Array<any>) {
+var sendCustomPastaTimeout:any = null
+async function sendCustomPasta() {
+  const windowRef = await getActiveWindow()
+  const title = await windowRef.title
+  if (title == 'Warframe') {
+    Electron.clipboard.writeText(get_random(config.customPasta))
+    await keyboard.pressKey(Key.LeftControl)
+    await keyboard.pressKey(Key.V)
+    await keyboard.releaseKey(Key.V)
+    await keyboard.releaseKey(Key.LeftControl)
+    await keyboard.pressKey(Key.Enter)
+    await keyboard.releaseKey(Key.Enter)
+    setTimeout(async () => {
+      await keyboard.pressKey(Key.T)
+      await keyboard.releaseKey(Key.T)
+      await keyboard.pressKey(Key.Backspace)
+      await keyboard.releaseKey(Key.Backspace)
+    }, 100);
+    activateBeep(119500)
+    if (config.autoSpammer) {
+      clearTimeout(sendCustomPastaTimeout)
+      sendCustomPastaTimeout = setTimeout(sendCustomPasta, config.autoSpammerTimeout);
+    }
+  }
+}
+
+ipcMain.on('StopAutoSpammer', (arg) => {
+  console.log('cancelling timeout')
+  clearTimeout(sendPastaTimeout)
+  clearTimeout(sendCustomPastaTimeout)
+})
+
+function get_random(list:Array<any>) {
   return list[Math.floor((Math.random()*list.length))];
 }
 

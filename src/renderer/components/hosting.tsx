@@ -87,6 +87,7 @@ interface IHostingState {
     enableHotkey: boolean,
     hotkeyRandomizer: boolean,
     hotkeySequential: boolean,
+    autoSpammer: boolean,
 }
 
 class Hosting extends React.Component<IHostingProps,IHostingState> {
@@ -113,6 +114,7 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
         enableHotkey: true,
         hotkeyRandomizer: true,
         hotkeySequential: false,
+        autoSpammer: false,
       };
     }
     
@@ -134,6 +136,7 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
                 enableHotkey: (config as any).enableHotkey,
                 hotkeyRandomizer: (config as any).hotkeyRandomizer,
                 hotkeySequential: (config as any).hotkeySequential,
+                autoSpammer: (config as any).autoSpammer,
             });
         })
     }
@@ -244,6 +247,12 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
             this.setState({hotkeySequential: e.target.checked,hotkeyRandomizer: !e.target.checked}, () => {
                 (config as any).hotkeySequential = this.state.hotkeySequential;
                 (config as any).hotkeyRandomizer = this.state.hotkeyRandomizer;
+                event.emit('postConfig', config)
+            })
+        }
+        if (e.target.id == 'autoSpammer') {
+            this.setState({autoSpammer: e.target.checked}, () => {
+                (config as any).autoSpammer = this.state.autoSpammer;
                 event.emit('postConfig', config)
             })
         }
@@ -402,8 +411,13 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
                         </div>
                     </Grid>
                     <Grid item xs={12}>
-                        <Grid item xs={12}>
-                            <Typography style={{fontSize: '36px'}}>Trading</Typography>
+                        <Grid container direction={'row'}>
+                            <Grid item xs={'auto'}>
+                                <Typography style={{fontSize: '36px'}}>Trading</Typography>
+                            </Grid>
+                            <Grid item xs={'auto'} style={{marginLeft: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                                <Button size='small' variant='outlined' onClick={(e) => event.emit('StopAutoSpammer', {})}>Stop Spammer</Button>
+                            </Grid>
                         </Grid>
                         <Grid item xs={12}>
                             <TextareaAutosize minRows={10} maxRows={10} value={this.state.textTrading} style={{color:'white',backgroundColor:'#171717',resize:'none', width:'100%'}} readOnly/>
@@ -438,6 +452,7 @@ class Hosting extends React.Component<IHostingProps,IHostingState> {
                             <FormControlLabel style={{marginLeft: '20px'}} control={<Checkbox onChange={this.hotkeyCheckboxChange} checked={this.state.enableHotkey} id='enableHotkey'/>} label="Enable Hotkey" />
                             <FormControlLabel control={<Checkbox onChange={this.hotkeyCheckboxChange} checked={this.state.hotkeyRandomizer} id='hotkeyRandomizer'/>} label="Randomized" />
                             <FormControlLabel control={<Checkbox onChange={this.hotkeyCheckboxChange} checked={this.state.hotkeySequential} id="hotkeySequential"/>} label="Sequential" />
+                            <FormControlLabel control={<Checkbox onChange={this.hotkeyCheckboxChange} checked={this.state.autoSpammer} id="autoSpammer"/>} label="Auto Spammer" />
                         </Grid>
                     </Grid>
                 </Grid>

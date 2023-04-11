@@ -28,6 +28,9 @@ interface Iconfig {
     enableHotkey: boolean,
     hotkeyRandomizer: boolean,
     hotkeySequential: boolean,
+    autoSpammer: boolean,
+    autoSpammerTimeout: number,
+    customPasta: Array<string>,
 }
 
 const config_default:Iconfig = {
@@ -45,8 +48,16 @@ const config_default:Iconfig = {
     enableHotkey: true,
     hotkeyRandomizer: true,
     hotkeySequential: false,
+    autoSpammer: false,
+    autoSpammerTimeout: 121,
+    customPasta: []
 }
 var config:Iconfig= config_default
+
+fs.watchFile(appFolder + 'config.json',() => {
+  console.log('config changed')
+  config = JSON.parse(fs.readFileSync(appFolder + 'config.json').toString())
+})
 
 async function getConfig() {
     return new Promise((resolve,reject) => {

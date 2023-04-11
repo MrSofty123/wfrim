@@ -20,7 +20,7 @@ function pushRelicDB() {
 itemsListFetch()
 function itemsListFetch() {
     console.log('itemsListFetch')
-    axios.get('https://gauss-prime-api.up.railway.app/api/items/fetch')
+    axios.get('https://gauss-prime-api.up.railway.app/api/items/fetch', {maxContentLength: Infinity, maxBodyLength: Infinity})
     .then((res) => {
         const data = res.data
         console.log('itemsListFetch received api response')

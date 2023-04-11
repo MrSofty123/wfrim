@@ -60,3 +60,7 @@ window.electron.ipcRenderer.on('importSRBResponse', (arg) => {
     console.log('Render response: importSRBResponse')
     event.emit('importSRBResponse', arg)
 });
+
+event.on('StopAutoSpammer', (data) => {
+    window.electron.ipcRenderer.sendMain('StopAutoSpammer', data);
+})
