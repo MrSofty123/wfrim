@@ -30,6 +30,7 @@ interface Iconfig {
     hotkeySequential: boolean,
     autoSpammer: boolean,
     autoSpammerTimeout: number,
+    autoSpammerHotkey: string,
     customPasta: Array<string>,
 }
 
@@ -49,7 +50,8 @@ const config_default:Iconfig = {
     hotkeyRandomizer: true,
     hotkeySequential: false,
     autoSpammer: false,
-    autoSpammerTimeout: 121,
+    autoSpammerTimeout: 120500,
+    autoSpammerHotkey: `ctrl+num9`,
     customPasta: []
 }
 var config:Iconfig= config_default

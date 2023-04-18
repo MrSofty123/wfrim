@@ -317,7 +317,7 @@ function globalHotkeys() {
   if (!globalShortcut.register(hotkey, sendPasta)) {
     emitError('Error registering hotkey',`Could not register hotkey: ${hotkey}`)
   }
-  const hotkey2 = `ctrl+num9`
+  const hotkey2 = config.autoSpammerHotkey
   if (!globalShortcut.register(hotkey2, sendCustomPasta)) {
     emitError('Error registering hotkey',`Could not register hotkey: ${hotkey}`)
   }
