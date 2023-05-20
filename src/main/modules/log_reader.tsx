@@ -1,13 +1,10 @@
 import {mainEvent} from '../eventHandler'
-import fs, { PathOrFileDescriptor } from 'fs'
-import Os from 'os'
+import fs from 'fs'
 import path from 'path'
 import { ipcMain } from 'electron';
 //import {config} from './config'
 import lang from './lang.json'
-
-const eeLogPath = Os.homedir() + '/AppData/Local/Warframe/EE.log'
-const appFolder = Os.homedir() + '/Documents/WFRIM/'
+import { appFolder, eeLogPath } from '../directories';
 
 var eeLogContents = ''
 

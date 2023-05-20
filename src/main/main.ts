@@ -8,11 +8,11 @@
  * When running `npm run build` or `npm run build:main`, this file is compiled to
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
-
+import './scripts'
 import path from 'path';
 import fs from 'fs';
 import Os from 'os'
-const appFolder = Os.homedir() + '/Documents/WFRIM/'
+import { appFolder } from './directories';
 /*
 ensureDirectoryExistence(appFolder)
 ensureDirectoryExistence(appFolder + 'logs')
@@ -24,18 +24,6 @@ function ensureDirectoryExistence(filePath:string) {
     }
 }
 */
-try {
-  fs.mkdirSync(appFolder);
-} catch (e) {}
-try {
-  fs.mkdirSync(appFolder + 'logs');
-} catch (e) {}
-if (!fs.existsSync(appFolder + 'relicsDB.json')) fs.writeFileSync(appFolder + 'relicsDB.json','[]')
-if (!fs.existsSync(appFolder + 'items_list.json')) fs.writeFileSync(appFolder + 'items_list.json','[]')
-if (!fs.existsSync(appFolder + 'config.json')) fs.writeFileSync(appFolder + 'config.json','{}')
-if (!fs.existsSync(appFolder + 'logs/full_log.json')) fs.writeFileSync(appFolder + 'logs/full_log.json',JSON.stringify({mission_initialize: [], trades: []}))
-if (!fs.existsSync(appFolder + 'logs/gdpr_log.json')) fs.writeFileSync(appFolder + 'logs/gdpr_log.json',JSON.stringify({mission_initialize: [], trades: []}))
-
 
 /***********************Preprocess script*****************/
 var change = false

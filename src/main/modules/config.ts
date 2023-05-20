@@ -1,10 +1,9 @@
 
 import { randomUUID } from 'crypto';
 import fs from 'fs';
-import Os from 'os'
 import { mainEvent } from '../eventHandler';
 import { ipcMain } from 'electron';
-const appFolder = Os.homedir() + '/Documents/WFRIM/'
+import { appFolder, eeLogPath } from '../directories';
 
 interface Iconfig {
     device_id: string,
@@ -99,7 +98,7 @@ ipcMain.on('postConfig', (event,data) => {
 //
 
 function getUsername() {
-    var eeLogContents = fs.readFileSync(Os.homedir() + '/AppData/Local/Warframe/EE.log','utf-8').replace(/^\uFEFF/, '')
+    var eeLogContents = fs.readFileSync(eeLogPath,'utf-8').replace(/^\uFEFF/, '')
     const logArr = eeLogContents.split('\r\n')
     var username = ""
     for (const [index,val] of logArr.entries()) {

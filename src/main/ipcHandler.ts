@@ -1,12 +1,9 @@
 
 import { ipcMain } from 'electron';
-import path from 'path';
 import fs from 'fs';
-import Os from 'os'
 import { mainEvent } from './eventHandler';
 import './modules/api_module'
-
-const appFolder = Os.homedir() + '/Documents/WFRIM/'
+import { appFolder } from './directories';
 
 /*******************timerVars********************/
 var relicsDBTimer:ReturnType<typeof setTimeout>;
