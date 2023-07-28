@@ -15,4 +15,4 @@ Warframe Relic Inventory Manager is a desktop application built using Electron.j
 
 # Running the code
 - First install the node modules using the command: `npm install`
-- Run the website using: `npm start`
+- Run the app using: `npm start`
